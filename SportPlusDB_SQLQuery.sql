@@ -1,9 +1,8 @@
 ﻿/* ================================
-   RESET DB
+RESET DATABASE
 ================================ */
 USE master;
 GO
-
 IF DB_ID('SportPlusDB') IS NOT NULL
 BEGIN
     ALTER DATABASE SportPlusDB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
@@ -13,231 +12,360 @@ GO
 
 CREATE DATABASE SportPlusDB;
 GO
-
 USE SportPlusDB;
 GO
 
 /* ================================
-   LOOKUP TABLES
+MASTER TABLES
 ================================ */
-CREATE TABLE Roles(
-    RoleId INT IDENTITY PRIMARY KEY,
-    Code NVARCHAR(50) DEFAULT ('ROLE-' + LEFT(CONVERT(VARCHAR(36), NEWID()),8)),
-    RoleName NVARCHAR(50),
-    IsDeleted BIT DEFAULT 0
-);
-GO
-
-CREATE TABLE BookingStatus(
+CREATE TABLE UserStatuses(
     StatusId INT IDENTITY PRIMARY KEY,
-    Name NVARCHAR(50)
+    Name NVARCHAR(50) UNIQUE NOT NULL
 );
-GO
 
-CREATE TABLE PaymentMethod(
-    MethodId INT IDENTITY PRIMARY KEY,
-    Name NVARCHAR(50)
-);
-GO
-
-CREATE TABLE PaymentStatus(
+CREATE TABLE BookingStatuses(
     StatusId INT IDENTITY PRIMARY KEY,
-    Name NVARCHAR(50)
+    Name NVARCHAR(50) UNIQUE NOT NULL
 );
-GO
+
+CREATE TABLE PaymentStatuses(
+    StatusId INT IDENTITY PRIMARY KEY,
+    Name NVARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE FieldStatuses(
+    StatusId INT IDENTITY PRIMARY KEY,
+    Name NVARCHAR(50) UNIQUE NOT NULL
+);
+
+CREATE TABLE FieldSlotStatuses(
+    StatusId INT IDENTITY PRIMARY KEY,
+    Name NVARCHAR(50) UNIQUE NOT NULL
+);
 
 /* ================================
-   USERS
+SEED DATA (TIẾNG VIỆT)
+================================ */
+INSERT INTO UserStatuses(Name)
+VALUES (N'Hoạt động'), (N'Bị khóa');
+
+INSERT INTO BookingStatuses(Name)
+VALUES (N'Chờ thanh toán'), (N'Đã xác nhận'), (N'Đã hủy');
+
+INSERT INTO PaymentStatuses(Name)
+VALUES (N'Chưa thanh toán'), (N'Đã thanh toán'), (N'Thất bại');
+
+INSERT INTO FieldStatuses(Name)
+VALUES (N'Hoạt động'), (N'Bảo trì');
+
+INSERT INTO FieldSlotStatuses(Name)
+VALUES (N'Trống'), (N'Đang giữ'), (N'Đã đặt');
+
+/* ================================
+USERS
 ================================ */
 CREATE TABLE Users(
     UserId INT IDENTITY PRIMARY KEY,
-    Code NVARCHAR(50) DEFAULT ('USR-' + LEFT(CONVERT(VARCHAR(36), NEWID()),8)),
-    FullName NVARCHAR(100),
-    Email NVARCHAR(100) UNIQUE,
-    Phone NVARCHAR(20),
-    PasswordHash NVARCHAR(255),
-    RoleId INT,
-    Status BIT DEFAULT 1,
-    IsDeleted BIT DEFAULT 0,
-    CreatedAt DATETIME DEFAULT GETDATE(),
+    Email NVARCHAR(100) NOT NULL,
+    Phone NVARCHAR(20) NOT NULL,
+    PasswordHash NVARCHAR(255) NOT NULL,
 
-    FOREIGN KEY(RoleId) REFERENCES Roles(RoleId)
+    StatusId INT NOT NULL,
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
+    RowVer ROWVERSION,
+    IsDeleted BIT DEFAULT 0,
+
+    CONSTRAINT UQ_Email UNIQUE(Email),
+    CONSTRAINT UQ_Phone UNIQUE(Phone),
+
+    FOREIGN KEY(StatusId) REFERENCES UserStatuses(StatusId)
 );
-GO
 
 /* ================================
-   FIELDS
+FIELDS
 ================================ */
 CREATE TABLE Fields(
     FieldId INT IDENTITY PRIMARY KEY,
-    Code NVARCHAR(50) DEFAULT ('FLD-' + LEFT(CONVERT(VARCHAR(36), NEWID()),8)),
-    FieldName NVARCHAR(100),
-    FieldType NVARCHAR(50),
-    PricePerHour DECIMAL(10,2),
-    Status BIT DEFAULT 1,
-    IsDeleted BIT DEFAULT 0
+    Name NVARCHAR(100),
+    BasePrice DECIMAL(10,2),
+
+    StatusId INT,
+    IsDeleted BIT DEFAULT 0,
+
+    FOREIGN KEY(StatusId) REFERENCES FieldStatuses(StatusId)
 );
-GO
 
 /* ================================
-   TIMESLOTS
+TIME SLOT
 ================================ */
 CREATE TABLE TimeSlots(
     SlotId INT IDENTITY PRIMARY KEY,
-    Code NVARCHAR(50) DEFAULT ('SLOT-' + LEFT(CONVERT(VARCHAR(36), NEWID()),8)),
     StartTime TIME,
     EndTime TIME,
-    IsDeleted BIT DEFAULT 0,
-
-    CONSTRAINT CK_Time CHECK (StartTime < EndTime)
+    CONSTRAINT UQ_Time UNIQUE(StartTime, EndTime)
 );
-GO
 
 /* ================================
-   BOOKINGS
+PEAK PRICING
+================================ */
+CREATE TABLE PeakPricingRules(
+    RuleId INT IDENTITY PRIMARY KEY,
+    DayOfWeek INT, -- 1=Monday
+    StartTime TIME,
+    EndTime TIME,
+    Multiplier DECIMAL(5,2)
+);
+
+/* ================================
+FIELD SLOT
+================================ */
+CREATE TABLE FieldSlots(
+    FieldSlotId INT IDENTITY PRIMARY KEY,
+    FieldId INT,
+    SlotId INT,
+    SlotDate DATE,
+
+    Price DECIMAL(10,2),
+
+    StatusId INT DEFAULT 1, -- Trống
+    HoldExpireAt DATETIME2 NULL,
+
+    FOREIGN KEY(FieldId) REFERENCES Fields(FieldId),
+    FOREIGN KEY(SlotId) REFERENCES TimeSlots(SlotId),
+    FOREIGN KEY(StatusId) REFERENCES FieldSlotStatuses(StatusId),
+
+    CONSTRAINT UQ_FieldSlot UNIQUE(FieldId, SlotId, SlotDate)
+);
+
+CREATE INDEX IX_FieldSlots_Search
+ON FieldSlots(FieldId, SlotDate, StatusId);
+
+/* ================================
+BOOKINGS
 ================================ */
 CREATE TABLE Bookings(
     BookingId INT IDENTITY PRIMARY KEY,
-    Code NVARCHAR(50) DEFAULT ('BKG-' + LEFT(CONVERT(VARCHAR(36), NEWID()),8)),
     UserId INT,
-    BookingDate DATE,
-    TotalAmount DECIMAL(10,2) DEFAULT 0,
     StatusId INT,
-    IsDeleted BIT DEFAULT 0,
-    CreatedAt DATETIME DEFAULT GETDATE(),
+    TotalAmount DECIMAL(10,2),
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
 
     FOREIGN KEY(UserId) REFERENCES Users(UserId),
-    FOREIGN KEY(StatusId) REFERENCES BookingStatus(StatusId)
+    FOREIGN KEY(StatusId) REFERENCES BookingStatuses(StatusId)
 );
-GO
+
+CREATE INDEX IX_Bookings_UserId ON Bookings(UserId);
 
 /* ================================
-   BOOKING DETAILS
+BOOKING DETAILS
 ================================ */
 CREATE TABLE BookingDetails(
     BookingDetailId INT IDENTITY PRIMARY KEY,
     BookingId INT,
-    FieldId INT,
-    SlotId INT,
-    BookingDate DATE,
+    FieldSlotId INT,
     Price DECIMAL(10,2),
-    IsDeleted BIT DEFAULT 0,
 
     FOREIGN KEY(BookingId) REFERENCES Bookings(BookingId),
-    FOREIGN KEY(FieldId) REFERENCES Fields(FieldId),
-    FOREIGN KEY(SlotId) REFERENCES TimeSlots(SlotId),
+    FOREIGN KEY(FieldSlotId) REFERENCES FieldSlots(FieldSlotId),
 
-    CONSTRAINT UQ_FieldSlot UNIQUE(FieldId, SlotId, BookingDate)
+    CONSTRAINT UQ_Slot UNIQUE(FieldSlotId)
 );
-GO
+
+CREATE INDEX IX_BookingDetails_BookingId ON BookingDetails(BookingId);
 
 /* ================================
-   SERVICES
-================================ */
-CREATE TABLE Services(
-    ServiceId INT IDENTITY PRIMARY KEY,
-    Code NVARCHAR(50) DEFAULT ('SER-' + LEFT(CONVERT(VARCHAR(36), NEWID()),8)),
-    ServiceName NVARCHAR(100),
-    Price DECIMAL(10,2),
-    IsDeleted BIT DEFAULT 0
-);
-GO
-
-CREATE TABLE BookingServices(
-    Id INT IDENTITY PRIMARY KEY,
-    BookingId INT,
-    ServiceId INT,
-    Quantity INT,
-    Price DECIMAL(10,2),
-    IsDeleted BIT DEFAULT 0,
-
-    FOREIGN KEY(BookingId) REFERENCES Bookings(BookingId),
-    FOREIGN KEY(ServiceId) REFERENCES Services(ServiceId)
-);
-GO
-
-/* ================================
-   PAYMENTS
+PAYMENTS
 ================================ */
 CREATE TABLE Payments(
     PaymentId INT IDENTITY PRIMARY KEY,
-    Code NVARCHAR(50) DEFAULT ('PAY-' + LEFT(CONVERT(VARCHAR(36), NEWID()),8)),
     BookingId INT,
     Amount DECIMAL(10,2),
-    MethodId INT,
     StatusId INT,
-    PaidAt DATETIME,
-    IsDeleted BIT DEFAULT 0,
+    Method NVARCHAR(50),
+    TransactionCode NVARCHAR(100),
+    CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
 
     FOREIGN KEY(BookingId) REFERENCES Bookings(BookingId),
-    FOREIGN KEY(MethodId) REFERENCES PaymentMethod(MethodId),
-    FOREIGN KEY(StatusId) REFERENCES PaymentStatus(StatusId)
+    FOREIGN KEY(StatusId) REFERENCES PaymentStatuses(StatusId)
 );
 GO
 
-/* ================================
-   TRIGGER: AUTO TOTAL
-================================ */
-CREATE TRIGGER trg_UpdateBookingTotal
-ON BookingDetails
-AFTER INSERT, UPDATE, DELETE
-AS
-BEGIN
-    UPDATE B
-    SET TotalAmount = ISNULL((
-        SELECT SUM(Price)
-        FROM BookingDetails BD
-        WHERE BD.BookingId = B.BookingId AND BD.IsDeleted = 0
-    ),0)
-    FROM Bookings B;
-END
+CREATE INDEX IX_Payments_BookingId ON Payments(BookingId);
 GO
 
 /* ================================
-   SOFT DELETE USERS
+SEED TIME SLOTS
 ================================ */
-CREATE TRIGGER trg_SoftDelete_Users
-ON Users
-INSTEAD OF DELETE
-AS
-BEGIN
-    UPDATE Users
-    SET IsDeleted = 1
-    WHERE UserId IN (SELECT UserId FROM deleted);
-END
-GO
-
-/* ================================
-   VIEW
-================================ */
-CREATE VIEW v_Bookings AS
-SELECT * FROM Bookings WHERE IsDeleted = 0;
-GO
-
-/* ================================
-   INDEX
-================================ */
-CREATE INDEX IX_Booking_User ON Bookings(UserId);
-CREATE INDEX IX_Booking_Date ON Bookings(BookingDate);
-GO
-
-/* ================================
-   SEED DATA
-================================ */
-INSERT INTO Roles(RoleName) VALUES ('Admin'),('Staff'),('Customer');
-
-INSERT INTO BookingStatus(Name) VALUES ('Pending'),('Paid'),('Cancelled');
-
-INSERT INTO PaymentMethod(Name) VALUES ('Cash'),('Momo'),('VNPay');
-
-INSERT INTO PaymentStatus(Name) VALUES ('Pending'),('Completed');
-
-INSERT INTO Users(FullName, Email, RoleId)
-VALUES (N'Admin','admin@gmail.com',1);
-
-INSERT INTO Fields(FieldName, FieldType, PricePerHour)
-VALUES (N'Sân 1','5 người',200000);
-
 INSERT INTO TimeSlots(StartTime, EndTime)
-VALUES ('08:00','09:00');
+VALUES 
+('06:00','07:00'),('07:00','08:00'),
+('08:00','09:00'),('09:00','10:00'),
+('17:00','18:00'),('18:00','19:00'),
+('19:00','20:00'),('20:00','21:00');
+GO
+
+/* ================================
+SEED FIELDS
+================================ */
+INSERT INTO Fields(Name, BasePrice, StatusId)
+VALUES 
+(N'Sân 1', 200000, 1),
+(N'Sân 2', 200000, 1);
+GO
+
+/* ================================
+GENERATE SLOTS
+================================ */
+CREATE PROCEDURE sp_GenerateSlots
+    @StartDate DATE,
+    @EndDate DATE
+AS
+BEGIN
+    SET DATEFIRST 1; -- Monday
+
+    DECLARE @Date DATE = @StartDate;
+
+    WHILE @Date <= @EndDate
+    BEGIN
+        INSERT INTO FieldSlots(FieldId, SlotId, SlotDate, Price)
+        SELECT 
+            f.FieldId,
+            ts.SlotId,
+            @Date,
+            f.BasePrice * ISNULL(p.Multiplier, 1)
+        FROM Fields f
+        CROSS JOIN TimeSlots ts
+        OUTER APPLY (
+            SELECT TOP 1 Multiplier
+            FROM PeakPricingRules p
+            WHERE p.DayOfWeek = DATEPART(WEEKDAY, @Date)
+            AND ts.StartTime BETWEEN p.StartTime AND p.EndTime
+        ) p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM FieldSlots fs
+            WHERE fs.FieldId = f.FieldId
+            AND fs.SlotId = ts.SlotId
+            AND fs.SlotDate = @Date
+        );
+
+        SET @Date = DATEADD(DAY, 1, @Date);
+    END
+END
+GO
+
+/* ================================
+HOLD SLOT (ANTI RACE CONDITION)
+================================ */
+CREATE PROCEDURE sp_HoldSlots
+    @FieldSlotIds NVARCHAR(MAX)
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    BEGIN TRAN;
+
+    ;WITH ids AS (
+        SELECT CAST(value AS INT) AS Id
+        FROM STRING_SPLIT(@FieldSlotIds, ',')
+    )
+    UPDATE fs
+    SET StatusId = 2,
+        HoldExpireAt = DATEADD(MINUTE, 5, SYSDATETIME())
+    FROM FieldSlots fs WITH (UPDLOCK, HOLDLOCK)
+    JOIN ids i ON fs.FieldSlotId = i.Id
+    WHERE fs.StatusId = 1;
+
+    IF @@ROWCOUNT = 0
+    BEGIN
+        ROLLBACK;
+        THROW 50001, N'Slot không khả dụng', 1;
+    END
+
+    COMMIT;
+END
+GO
+
+/* ================================
+CONFIRM BOOKING
+================================ */
+CREATE PROCEDURE sp_ConfirmBooking
+    @BookingId INT,
+    @FieldSlotIds NVARCHAR(MAX)
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    BEGIN TRAN;
+
+    DECLARE @BookedStatus INT = (SELECT StatusId FROM FieldSlotStatuses WHERE Name = N'Đã đặt');
+
+    ;WITH ids AS (
+        SELECT CAST(value AS INT) AS Id
+        FROM STRING_SPLIT(@FieldSlotIds, ',')
+    )
+    UPDATE fs
+    SET StatusId = @BookedStatus,
+        HoldExpireAt = NULL
+    FROM FieldSlots fs
+    JOIN ids i ON fs.FieldSlotId = i.Id
+    WHERE fs.StatusId = 2
+    AND fs.HoldExpireAt >= SYSDATETIME();
+
+    INSERT INTO BookingDetails(BookingId, FieldSlotId, Price)
+    SELECT @BookingId, FieldSlotId, Price
+    FROM FieldSlots
+    WHERE FieldSlotId IN (SELECT Id FROM ids);
+
+    UPDATE Bookings
+    SET TotalAmount = (
+        SELECT SUM(Price)
+        FROM BookingDetails
+        WHERE BookingId = @BookingId
+    ),
+    StatusId = (SELECT StatusId FROM BookingStatuses WHERE Name = N'Đã xác nhận')
+    WHERE BookingId = @BookingId;
+
+    COMMIT;
+END
+GO
+
+/* ================================
+CANCEL BOOKING
+================================ */
+CREATE PROCEDURE sp_CancelBooking
+    @BookingId INT
+AS
+BEGIN
+    SET XACT_ABORT ON;
+    BEGIN TRAN;
+
+    DECLARE @EmptyStatus INT = (SELECT StatusId FROM FieldSlotStatuses WHERE Name = N'Trống');
+
+    UPDATE fs
+    SET StatusId = @EmptyStatus,
+        HoldExpireAt = NULL
+    FROM FieldSlots fs
+    JOIN BookingDetails bd ON fs.FieldSlotId = bd.FieldSlotId
+    WHERE bd.BookingId = @BookingId;
+
+    UPDATE Bookings
+    SET StatusId = (SELECT StatusId FROM BookingStatuses WHERE Name = N'Đã hủy')
+    WHERE BookingId = @BookingId;
+
+    COMMIT;
+END
+GO
+
+/* ================================
+RELEASE HOLD
+================================ */
+CREATE PROCEDURE sp_ReleaseExpiredSlots
+AS
+BEGIN
+    DECLARE @EmptyStatus INT = (SELECT StatusId FROM FieldSlotStatuses WHERE Name = N'Trống');
+
+    UPDATE FieldSlots
+    SET StatusId = @EmptyStatus,
+        HoldExpireAt = NULL
+    WHERE StatusId = 2
+    AND HoldExpireAt < SYSDATETIME();
+END
 GO
