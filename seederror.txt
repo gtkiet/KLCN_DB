@@ -1,0 +1,79 @@
+﻿
+(1 row affected)
+Msg 547, Level 16, State 0, Line 18
+The DELETE statement conflicted with the REFERENCE constraint "FK__SpecialDa__Creat__18EBB532". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.SpecialDays", column 'CreatedBy'.
+The statement has been terminated.
+Msg 2627, Level 14, State 1, Line 24
+Violation of PRIMARY KEY constraint 'PK__Users__1788CC4CBB650AE3'. Cannot insert duplicate key in object 'dbo.Users'. The duplicate key value is (1).
+The statement has been terminated.
+
+(0 rows affected)
+Msg 547, Level 16, State 0, Line 62
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__Profiles__UserId__693CA210". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+Msg 547, Level 16, State 0, Line 93
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__Bookings__UserId__2CF2ADDF". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+Msg 547, Level 16, State 0, Line 97
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__Bookings__UserId__2CF2ADDF". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+Msg 547, Level 16, State 0, Line 101
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__Bookings__UserId__2CF2ADDF". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+Msg 547, Level 16, State 0, Line 105
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__Bookings__UserId__2CF2ADDF". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+Msg 515, Level 16, State 2, Line 116
+Cannot insert the value NULL into column 'BookingId', table 'db_ac8bb1_klcn.dbo.Payments'; column does not allow nulls. INSERT fails.
+The statement has been terminated.
+Msg 515, Level 16, State 2, Line 124
+Cannot insert the value NULL into column 'BookingId', table 'db_ac8bb1_klcn.dbo.Payments'; column does not allow nulls. INSERT fails.
+The statement has been terminated.
+Msg 515, Level 16, State 2, Line 136
+Cannot insert the value NULL into column 'BookingId', table 'db_ac8bb1_klcn.dbo.Deposits'; column does not allow nulls. INSERT fails.
+The statement has been terminated.
+Msg 515, Level 16, State 2, Line 151
+Cannot insert the value NULL into column 'BookingId', table 'db_ac8bb1_klcn.dbo.Reviews'; column does not allow nulls. INSERT fails.
+The statement has been terminated.
+Msg 547, Level 16, State 0, Line 168
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__Incidents__Repor__0697FACD". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+
+(0 rows affected)
+Msg 547, Level 16, State 0, Line 204
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__Notificat__UserI__16CE6296". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+
+(2 rows affected)
+
+(10 rows affected)
+Msg 547, Level 16, State 0, Line 274
+The INSERT statement conflicted with the FOREIGN KEY constraint "FK__PurchaseO__Creat__793DFFAF". The conflict occurred in database "db_ac8bb1_klcn", table "dbo.Users", column 'UserId'.
+The statement has been terminated.
+Msg 515, Level 16, State 2, Line 278
+Cannot insert the value NULL into column 'PurchaseOrderId', table 'db_ac8bb1_klcn.dbo.PurchaseOrderDetails'; column does not allow nulls. INSERT fails.
+The statement has been terminated.
+
+(1 row affected)
+
+(3 rows affected)
+
+(2 rows affected)
+
+(2 rows affected)
+
+(4 rows affected)
+ 
+====== SEED DATA SUMMARY ======
+ 
+
+(16 rows affected)
+ 
+====== USERS CREATED ======
+
+(1 row affected)
+ 
+⚠️  Nhớ thay PasswordHash sau khi có API Auth!
+✅  Seed data hoàn tất.
+
+Completion time: 2026-05-01T16:57:50.8600063+07:00

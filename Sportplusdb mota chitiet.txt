@@ -1,0 +1,648 @@
+================================================================
+  SPORTPLUSDB — MÔ TẢ CƠ SỞ DỮ LIỆU CHI TIẾT
+  Hệ thống quản lý sân bóng đá Sport Plus
+  Dành cho: Thành viên nhóm phát triển API & Frontend
+================================================================
+
+STACK KỸ THUẬT
+--------------
+  Database   : SQL Server 2019+
+  Collation  : Vietnamese_CI_AS (hỗ trợ tiếng Việt, không phân biệt hoa/thường)
+  Backend    : Laravel (PHP) — kết nối qua PDO / Eloquent ORM
+  App        : Flutter (Dart) — gọi qua REST API
+
+
+================================================================
+  TỔNG QUAN KIẾN TRÚC
+================================================================
+
+Database gồm 4 nhóm chính:
+
+  [A] LOOKUP TABLES     — Danh mục trạng thái, phân loại (không bao giờ CRUD trực tiếp)
+  [B] USERS & AUTH      — Người dùng, phân quyền, token
+  [C] CORE BUSINESS     — Sân, lịch, booking, thanh toán, dịch vụ, voucher
+  [D] OPERATIONS        — Kho hàng, sự cố, thông báo
+
+Tổng số bảng: 30
+Stored Procedures: 8
+Views: 7
+
+
+================================================================
+  [A] LOOKUP TABLES — DANH MỤC THAM CHIẾU
+================================================================
+
+Đây là các bảng "từ điển" cố định. Frontend lấy 1 lần khi khởi
+động app và cache lại. API không cần endpoint CRUD cho nhóm này.
+
+------------------------------------------------------------
+Roles                 — Vai trò người dùng
+------------------------------------------------------------
+  RoleId  Name
+  ------  ----------
+  1       Admin       (toàn quyền hệ thống)
+  2       Staff       (nhân viên — quản lý booking, sự cố, kho)
+  3       Customer    (khách hàng — đặt sân, xem lịch sử)
+
+------------------------------------------------------------
+UserStatuses          — Trạng thái tài khoản
+------------------------------------------------------------
+  1  Hoạt động
+  2  Bị khóa
+
+------------------------------------------------------------
+FieldTypes            — Loại sân
+------------------------------------------------------------
+  1  Sân 5   (5 người / bên)
+  2  Sân 7   (7 người / bên)
+
+------------------------------------------------------------
+FieldStatuses         — Trạng thái sân
+------------------------------------------------------------
+  1  Hoạt động    (sân có thể đặt bình thường)
+  2  Bảo trì      (tạm ngưng, không sinh slot mới)
+
+------------------------------------------------------------
+FieldSlotStatuses     — Trạng thái ô giờ (FieldSlots)
+------------------------------------------------------------
+  1  Trống         (khách có thể chọn)
+  2  Đang giữ      (đang trong quá trình đặt, giữ 10 phút)
+  3  Đã đặt        (đã thanh toán thành công)
+
+  *** Đây là vòng đời slot — xem chi tiết ở phần CORE BUSINESS
+
+------------------------------------------------------------
+BookingStatuses       — Trạng thái đơn đặt sân
+------------------------------------------------------------
+  1  Chờ thanh toán   (booking vừa tạo, chưa thanh toán)
+  2  Đã xác nhận      (đã thanh toán thành công)
+  3  Đã hủy           (hủy thủ công hoặc hết giờ giữ)
+  4  Đã hoàn thành    (sau khi sử dụng sân xong — update thủ công)
+
+------------------------------------------------------------
+PaymentStatuses       — Trạng thái thanh toán
+------------------------------------------------------------
+  1  Chưa thanh toán
+  2  Đã thanh toán
+  3  Thất bại
+  4  Đã hoàn tiền     (khi hủy booking đã xác nhận)
+
+------------------------------------------------------------
+PaymentMethods        — Phương thức thanh toán
+------------------------------------------------------------
+  1  Tiền mặt
+  2  Chuyển khoản
+  3  VNPay
+  4  MoMo
+
+------------------------------------------------------------
+IncidentStatuses      — Trạng thái sự cố
+------------------------------------------------------------
+  1  Mới              (vừa báo cáo)
+  2  Đang xử lý
+  3  Đã xử lý
+
+------------------------------------------------------------
+PurchaseOrderStatuses — Trạng thái đơn nhập kho
+------------------------------------------------------------
+  1  Chờ xác nhận
+  2  Đã nhập          (tồn kho đã được cộng)
+  3  Đã hủy
+
+------------------------------------------------------------
+PromotionTypes        — Loại giảm giá voucher
+------------------------------------------------------------
+  1  Phần trăm        (ví dụ: giảm 10%)
+  2  Số tiền cố định  (ví dụ: giảm 50.000đ)
+
+
+================================================================
+  [B] USERS & AUTH
+================================================================
+
+------------------------------------------------------------
+Users                 — Tài khoản người dùng
+------------------------------------------------------------
+Cột chính:
+  UserId       INT           PK, tự tăng
+  Email        NVARCHAR(100) UNIQUE — dùng để đăng nhập
+  Phone        NVARCHAR(20)  UNIQUE — số điện thoại
+  PasswordHash NVARCHAR(255) — bcrypt hash (KHÔNG lưu plaintext)
+  FullName     NVARCHAR(100)
+  RoleId       INT           FK → Roles
+  StatusId     INT           FK → UserStatuses (default 1 = Hoạt động)
+  IsDeleted    BIT           Soft delete — không xóa vật lý
+
+Lưu ý cho dev:
+  - Khi "xóa" user: SET IsDeleted = 1, không DELETE
+  - Khi khóa user: SET StatusId = 2
+  - Query luôn lọc: WHERE IsDeleted = 0
+
+------------------------------------------------------------
+Profiles              — Thông tin bổ sung
+------------------------------------------------------------
+  ProfileId    INT     PK
+  UserId       INT     UNIQUE, FK → Users (1-1)
+  AvatarUrl    URL ảnh đại diện (lưu trên Supabase Storage hoặc S3)
+  DateOfBirth  DATE
+  Address      NVARCHAR(255)
+
+  Lý do tách bảng: Giữ Users gọn, Profiles chứa data ít query.
+  Mỗi User luôn có 1 Profile (tạo cùng lúc khi đăng ký).
+
+------------------------------------------------------------
+RefreshTokens         — JWT Refresh Token
+------------------------------------------------------------
+  TokenId    INT          PK
+  UserId     INT          FK → Users
+  Token      NVARCHAR(500) — chuỗi token ngẫu nhiên (UUID/crypto)
+  ExpiresAt  DATETIME2    — thời điểm hết hạn
+  IsRevoked  BIT          — 1 = đã thu hồi (logout / đổi pass)
+  CreatedAt  DATETIME2
+
+  Flow xác thực:
+    1. Đăng nhập  → trả về AccessToken (15 phút) + RefreshToken (30 ngày)
+    2. AccessToken hết hạn → gọi /auth/refresh với RefreshToken
+    3. Logout → SET IsRevoked = 1
+    4. Đổi mật khẩu → thu hồi tất cả token của user đó
+
+
+================================================================
+  [C] CORE BUSINESS
+================================================================
+
+------------------------------------------------------------
+Fields                — Sân bóng
+------------------------------------------------------------
+  FieldId      INT           PK
+  Name         NVARCHAR(100) Tên sân (Sân A1, Sân B2...)
+  Description  NVARCHAR(500)
+  BasePrice    DECIMAL(12,2) Giá giờ thường (VND)
+  PeakPrice    DECIMAL(12,2) Giá giờ cao điểm (VND) — luôn >= BasePrice
+  ImageUrl     NVARCHAR(500)
+  TypeId       INT           FK → FieldTypes (1=Sân5, 2=Sân7)
+  StatusId     INT           FK → FieldStatuses (1=Hoạt động, 2=Bảo trì)
+  IsDeleted    BIT           Soft delete
+
+  Ràng buộc quan trọng:
+    - PeakPrice >= BasePrice  (check constraint)
+    - Khi StatusId = 2 (Bảo trì): ghi vào FieldMaintenanceLogs
+
+------------------------------------------------------------
+TimeSlots             — Khung giờ cố định (dùng chung mọi sân)
+------------------------------------------------------------
+  SlotId      INT   PK
+  StartTime   TIME  Giờ bắt đầu
+  EndTime     TIME  Giờ kết thúc (luôn > StartTime)
+  IsPeakHour  BIT   1 = giờ cao điểm → dùng PeakPrice
+
+  Dữ liệu seed sẵn 15 khung giờ:
+    Giờ thường (IsPeakHour=0): 06:00–12:00, 13:00–17:00
+    Giờ cao điểm (IsPeakHour=1): 17:00–22:00
+    Nghỉ trưa: 12:00–13:00 (không có slot)
+
+------------------------------------------------------------
+FieldSlots            — Ô giờ theo ngày (bảng trung tâm đặt sân)
+------------------------------------------------------------
+  FieldSlotId  INT           PK
+  FieldId      INT           FK → Fields
+  SlotId       INT           FK → TimeSlots
+  SlotDate     DATE          Ngày cụ thể
+  Price        DECIMAL(12,2) Giá chụp lại tại thời điểm sinh slot
+  StatusId     INT           FK → FieldSlotStatuses
+  HoldExpireAt DATETIME2     Thời điểm hết hạn giữ (NULL khi Trống/Đã đặt)
+  UpdatedAt    DATETIME2
+
+  Unique constraint: (FieldId, SlotId, SlotDate) — không trùng slot
+
+  VÒNG ĐỜI SLOT:
+    Trống(1) ──[sp_HoldSlots]──► Đang giữ(2) ──[sp_ConfirmBooking]──► Đã đặt(3)
+                                      │
+                            [hết 10 phút / sp_ReleaseExpiredSlots]
+                                      │
+                                  Trống(1) ◄─────────────────────────────────────
+
+    Hủy booking: Đã đặt(3) ──[sp_CancelBooking]──► Trống(1)
+
+  Sinh slot: Gọi EXEC sp_GenerateSlots mỗi ngày lúc 00:01
+             (SQL Agent Job) để sinh slot cho ngày thứ 30.
+             Slot được sinh trước 30 ngày, giá được khóa tại
+             thời điểm sinh (không đổi khi admin thay giá sân).
+
+------------------------------------------------------------
+FieldMaintenanceLogs  — Nhật ký bảo trì sân
+------------------------------------------------------------
+  LogId      INT           PK
+  FieldId    INT           FK → Fields
+  Reason     NVARCHAR(500) Lý do bảo trì
+  StartDate  DATE
+  EndDate    DATE          NULL = chưa hoàn thành
+  CreatedBy  INT           FK → Users (staff/admin ghi)
+  CreatedAt  DATETIME2
+
+  Cách dùng: Khi admin đặt sân vào trạng thái Bảo trì,
+  API cần insert 1 dòng vào bảng này đồng thời.
+
+------------------------------------------------------------
+Bookings              — Đơn đặt sân (đầu mối)
+------------------------------------------------------------
+  BookingId      INT           PK
+  UserId         INT           FK → Users (khách đặt)
+  StatusId       INT           FK → BookingStatuses
+  SubTotal       DECIMAL(12,2) Tổng giá slot + dịch vụ (trước giảm)
+  DiscountAmount DECIMAL(12,2) Số tiền được giảm (mặc định 0)
+  TotalAmount    DECIMAL(12,2) = SubTotal - DiscountAmount
+  PromotionId    INT           FK → Promotions (NULL nếu không dùng voucher)
+  Note           NVARCHAR(500) Ghi chú của khách
+  CancelReason   NVARCHAR(500) Lý do hủy (NULL nếu chưa hủy)
+  CreatedAt      DATETIME2
+  UpdatedAt      DATETIME2
+
+  Flow tạo booking:
+    1. Client gọi sp_HoldSlots → giữ slot
+    2. Client gọi API tạo Booking (StatusId=1, SubTotal=NULL)
+    3. [Tùy chọn] Áp voucher: sp_ApplyPromotion
+    4. Client thanh toán → insert Payments (StatusId=2)
+    5. Gọi sp_ConfirmBooking → tính SubTotal/TotalAmount, StatusId=2
+
+------------------------------------------------------------
+BookingDetails        — Chi tiết từng slot trong booking
+------------------------------------------------------------
+  BookingDetailId INT           PK
+  BookingId       INT           FK → Bookings
+  FieldSlotId     INT           FK → FieldSlots (UNIQUE — 1 slot = 1 booking)
+  Price           DECIMAL(12,2) Giá lúc đặt (chụp từ FieldSlots.Price)
+
+  Quan hệ: 1 Booking có nhiều BookingDetails (đặt nhiều khung giờ cùng lúc)
+
+------------------------------------------------------------
+Payments              — Thanh toán
+------------------------------------------------------------
+  PaymentId       INT           PK
+  BookingId       INT           FK → Bookings
+  Amount          DECIMAL(12,2) Số tiền giao dịch
+  StatusId        INT           FK → PaymentStatuses
+  MethodId        INT           FK → PaymentMethods
+  TransactionCode NVARCHAR(100) Mã từ VNPay/MoMo (để đối soát)
+  GatewayResponse NVARCHAR(MAX) Raw JSON từ cổng thanh toán (lưu để debug)
+  Note            NVARCHAR(255)
+  PaidAt          DATETIME2     NULL cho đến khi thanh toán thành công
+  CreatedAt       DATETIME2
+
+  Lưu ý: Mỗi Booking có thể có nhiều Payment record:
+    - 1 record thanh toán chính (StatusId=2)
+    - 1 record hoàn tiền khi hủy (StatusId=4) — do sp_CancelBooking tạo
+
+------------------------------------------------------------
+Services              — Dịch vụ đi kèm
+------------------------------------------------------------
+  ServiceId   INT           PK
+  Name        NVARCHAR(100) Tên dịch vụ
+  Description NVARCHAR(500)
+  Price       DECIMAL(12,2) Giá hiện tại (có thể thay đổi)
+  ImageUrl    NVARCHAR(500)
+  IsAvailable BIT           0 = tạm ẩn (vẫn giữ lịch sử)
+  IsDeleted   BIT           Soft delete
+
+  Dữ liệu mẫu: Thuê bóng, Thuê áo, Nước uống, Thuê giày, Thuê trọng tài
+
+------------------------------------------------------------
+BookingServices       — Dịch vụ trong booking
+------------------------------------------------------------
+  BookingServiceId INT           PK
+  BookingId        INT           FK → Bookings
+  ServiceId        INT           FK → Services
+  Quantity         INT           Số lượng (>= 1)
+  UnitPrice        DECIMAL(12,2) Giá lúc thêm vào (chụp lại, không đổi khi admin sửa giá)
+
+  Unique: (BookingId, ServiceId) — mỗi dịch vụ 1 lần / booking
+  Thêm thêm = tăng Quantity, không insert dòng mới
+
+------------------------------------------------------------
+Promotions            — Voucher / Khuyến mãi
+------------------------------------------------------------
+  PromotionId    INT           PK
+  Code           NVARCHAR(50)  UNIQUE — mã khách nhập (VD: KHAIMEN10)
+  Name           NVARCHAR(200) Tên chương trình
+  Description    NVARCHAR(500)
+  TypeId         INT           FK → PromotionTypes (1=%, 2=cố định)
+  DiscountValue  DECIMAL(12,2) Giá trị giảm (% hoặc VND)
+  MaxDiscount    DECIMAL(12,2) Giảm tối đa (chỉ dùng cho loại %)
+                               VD: Giảm 20% nhưng tối đa 100.000đ
+  MinOrderAmount DECIMAL(12,2) Đơn tối thiểu để áp (VD: 200.000đ)
+  UsageLimit     INT           Tổng lượt dùng cho phép
+  UsageCount     INT           Đã dùng bao nhiêu lượt
+  StartDate      DATE          Ngày bắt đầu hiệu lực
+  EndDate        DATE          Ngày hết hạn
+  IsActive       BIT           Admin bật/tắt nhanh
+  CreatedBy      INT           FK → Users (admin tạo)
+
+  Logic kiểm tra (trong sp_ApplyPromotion):
+    1. Code tồn tại + IsActive=1
+    2. Ngày hiện tại nằm trong [StartDate, EndDate]
+    3. UsageCount < UsageLimit
+    4. SubTotal >= MinOrderAmount
+    5. Tính DiscountAmount, giới hạn bởi MaxDiscount nếu có
+
+
+================================================================
+  [D] OPERATIONS
+================================================================
+
+------------------------------------------------------------
+Suppliers             — Nhà cung cấp kho
+------------------------------------------------------------
+  SupplierId   INT           PK
+  Name         NVARCHAR(100)
+  ContactName  NVARCHAR(100) Người liên hệ
+  Phone        NVARCHAR(20)
+  Email        NVARCHAR(100)
+  Address      NVARCHAR(255)
+  IsDeleted    BIT
+
+------------------------------------------------------------
+Products              — Sản phẩm trong kho
+------------------------------------------------------------
+  ProductId  INT           PK
+  Name       NVARCHAR(100) Tên sản phẩm (bóng, áo, nước...)
+  Unit       NVARCHAR(50)  Đơn vị tính (cái, thùng, bộ...)
+  StockQty   INT           Tồn kho hiện tại (>= 0)
+  MinQty     INT           Ngưỡng cảnh báo (khi StockQty <= MinQty → cảnh báo)
+  IsDeleted  BIT
+
+  Lưu ý: StockQty chỉ được cộng qua sp_ConfirmPurchaseOrder,
+  không UPDATE trực tiếp từ API.
+
+------------------------------------------------------------
+PurchaseOrders        — Đơn nhập kho
+------------------------------------------------------------
+  PurchaseOrderId INT           PK
+  SupplierId      INT           FK → Suppliers
+  CreatedByUserId INT           FK → Users (staff/admin tạo)
+  StatusId        INT           FK → PurchaseOrderStatuses
+  TotalAmount     DECIMAL(12,2) Tính tự động khi xác nhận
+  Note            NVARCHAR(500)
+  ConfirmedAt     DATETIME2     NULL cho đến khi xác nhận
+  CreatedAt       DATETIME2
+
+------------------------------------------------------------
+PurchaseOrderDetails  — Chi tiết sản phẩm trong đơn nhập
+------------------------------------------------------------
+  PurchaseOrderDetailId INT           PK
+  PurchaseOrderId       INT           FK → PurchaseOrders
+  ProductId             INT           FK → Products
+  Quantity              INT           Số lượng nhập (>= 1)
+  UnitPrice             DECIMAL(12,2) Giá nhập từ nhà cung cấp
+
+  Unique: (PurchaseOrderId, ProductId) — mỗi sp một dòng / đơn
+
+------------------------------------------------------------
+Incidents             — Sự cố sân
+------------------------------------------------------------
+  IncidentId       INT            PK
+  FieldId          INT            FK → Fields (sân bị sự cố)
+  ReportedByUserId INT            FK → Users (người báo — thường là Staff/Customer)
+  Title            NVARCHAR(200)  Tiêu đề ngắn (VD: "Đèn sân A1 bị hỏng")
+  Description      NVARCHAR(1000) Mô tả chi tiết
+  ImageUrl         NVARCHAR(500)  Ảnh minh chứng (upload lên Storage)
+  StatusId         INT            FK → IncidentStatuses
+  HandledByUserId  INT            FK → Users (người xử lý — thường Staff/Admin)
+  HandledAt        DATETIME2      Thời điểm xử lý xong
+  HandledNote      NVARCHAR(500)  Ghi chú sau xử lý
+  CreatedAt        DATETIME2
+
+  Flow xử lý:
+    Mới(1) → Staff nhận → Đang xử lý(2) → Xử lý xong → Đã xử lý(3)
+    Khi xử lý xong: ghi HandledByUserId, HandledAt, HandledNote
+
+------------------------------------------------------------
+Notifications         — Thông báo
+------------------------------------------------------------
+  NotificationId INT            PK
+  UserId         INT            FK → Users (người nhận)
+  Title          NVARCHAR(200)
+  Body           NVARCHAR(1000) Nội dung chi tiết
+  Type           NVARCHAR(50)   Loại thông báo (xem bên dưới)
+  RefId          INT            ID liên quan (BookingId hoặc IncidentId)
+  IsRead         BIT            0=chưa đọc, 1=đã đọc
+  CreatedAt      DATETIME2
+
+  Các loại Type:
+    BOOKING_CONFIRM   — Xác nhận đặt sân thành công
+    BOOKING_CANCEL    — Thông báo hủy booking
+    BOOKING_REMIND    — Nhắc lịch trước 1 giờ (gửi từ background job)
+    PAYMENT_SUCCESS   — Thanh toán thành công
+    PAYMENT_REFUND    — Hoàn tiền đã xử lý
+    INCIDENT_UPDATE   — Cập nhật trạng thái sự cố
+    SYSTEM            — Thông báo hệ thống chung
+
+  Cách dùng: API tạo notification sau mỗi sự kiện.
+  App Flutter đọc theo UserId + IsRead=0 để hiển thị badge.
+
+
+================================================================
+  STORED PROCEDURES — HƯỚNG DẪN SỬ DỤNG
+================================================================
+
+API không nên viết SQL thủ công cho các nghiệp vụ quan trọng.
+Phải gọi Stored Procedure để đảm bảo tính toàn vẹn dữ liệu.
+
+------------------------------------------------------------
+sp_GenerateSlots(@StartDate, @EndDate)
+------------------------------------------------------------
+  Mục đích : Sinh FieldSlots cho các sân đang hoạt động
+  Gọi bởi  : SQL Agent Job (tự động mỗi ngày)
+             Hoặc admin gọi thủ công khi thêm sân mới
+  Ví dụ    : EXEC sp_GenerateSlots '2026-06-01', '2026-06-30'
+  Lưu ý    : Idempotent — gọi nhiều lần không bị trùng slot
+
+------------------------------------------------------------
+sp_HoldSlots(@FieldSlotIds, @UserId)
+------------------------------------------------------------
+  Mục đích : Giữ chỗ 10 phút khi khách chọn slot
+  Input    : @FieldSlotIds = chuỗi ID cách nhau dấu phẩy ('1,2,3')
+  Lỗi      : Ném exception 50001 nếu có slot không còn Trống
+  Dùng khi : Bước đầu của flow đặt sân (trước khi tạo Booking)
+
+------------------------------------------------------------
+sp_ConfirmBooking(@BookingId, @FieldSlotIds, @UserId)
+------------------------------------------------------------
+  Mục đích : Xác nhận booking sau khi thanh toán thành công
+  Thực hiện:
+    - Chuyển slot Đang giữ → Đã đặt
+    - Insert BookingDetails
+    - Tính SubTotal (slot + dịch vụ) và TotalAmount
+    - Cập nhật Booking.StatusId = 2
+  Lỗi      : Ném exception 50002 nếu hold đã hết hạn
+
+------------------------------------------------------------
+sp_CancelBooking(@BookingId, @UserId, @Reason)
+------------------------------------------------------------
+  Mục đích : Hủy booking
+  Thực hiện:
+    - Trả slot về Trống
+    - Cập nhật Booking.StatusId = 3
+    - Nếu đã thanh toán: tạo Payment hoàn tiền (StatusId=4)
+  Áp dụng  : Cho booking ở trạng thái 1 (Chờ TT) hoặc 2 (Đã xác nhận)
+
+------------------------------------------------------------
+sp_ReleaseExpiredSlots()
+------------------------------------------------------------
+  Mục đích : Tự động giải phóng slot hết hạn giữ
+  Gọi bởi  : SQL Agent Job, mỗi 1 phút
+  Thực hiện:
+    - Slot StatusId=2 + HoldExpireAt < NOW → Trống(1)
+    - Booking StatusId=1 + tạo > 15 phút + không còn slot hold → Đã hủy(3)
+
+------------------------------------------------------------
+sp_ApplyPromotion(@BookingId, @Code, @UserId)
+------------------------------------------------------------
+  Mục đích : Áp voucher vào booking
+  Thực hiện:
+    - Kiểm tra tất cả điều kiện voucher
+    - Tính DiscountAmount (áp MaxDiscount nếu có)
+    - Cập nhật Bookings (PromotionId, DiscountAmount, TotalAmount)
+    - Tăng Promotions.UsageCount
+  Gọi sau  : Khi SubTotal đã được tính (sau khi chọn slot + dịch vụ)
+
+------------------------------------------------------------
+sp_ConfirmPurchaseOrder(@PurchaseOrderId, @UserId)
+------------------------------------------------------------
+  Mục đích : Xác nhận đơn nhập kho → cộng tồn
+  Thực hiện:
+    - Kiểm tra đơn ở trạng thái Chờ xác nhận
+    - Cộng Products.StockQty
+    - Tính TotalAmount, đánh dấu Đã nhập
+
+------------------------------------------------------------
+sp_RescheduleBooking(@BookingDetailId, @NewFieldSlotId, @UserId)
+------------------------------------------------------------
+  Mục đích : Đổi 1 slot sang khung giờ khác
+  Thực hiện:
+    - Kiểm tra booking đang ở StatusId=2
+    - Kiểm tra slot mới còn Trống
+    - Hoán đổi slot (cũ → Trống, mới → Đã đặt)
+    - Cập nhật BookingDetail và tính lại TổngTiền (chênh lệch giá)
+  Chống race condition: WHERE StatusId=1 khi update slot mới
+
+
+================================================================
+  VIEWS — DÙNG ĐỂ QUERY, KHÔNG DÙNG ĐỂ WRITE
+================================================================
+
+  vw_FieldSchedule         Lịch sân theo ngày
+                           Query: WHERE SlotDate = @Date AND FieldId = @Id
+                           Dùng cho: Trang chọn khung giờ
+
+  vw_BookingHistory        Lịch sử đặt sân (đầy đủ thông tin)
+                           Query: WHERE UserId = @Id hoặc BookingId = @Id
+                           Dùng cho: Trang lịch sử khách hàng + admin
+
+  vw_RevenueByMonth        Doanh thu theo tháng/năm
+                           Query: WHERE Year = 2026 AND Month = 5
+                           Dùng cho: Trang thống kê admin
+
+  vw_FieldOccupancyByMonth Tỷ lệ lấp đầy theo sân/tháng
+                           Dùng cho: Biểu đồ báo cáo admin
+
+  vw_RevenueByService      Doanh thu từng dịch vụ
+                           Dùng cho: Báo cáo dịch vụ admin
+
+  vw_LowStockProducts      Sản phẩm tồn kho <= MinQty
+                           Dùng cho: Cảnh báo kho + Dashboard
+
+  vw_DashboardSummary      Tổng hợp 8 chỉ số cho trang chủ admin
+                           (1 query thay cho 8 query riêng lẻ)
+
+
+================================================================
+  QUY ƯỚC QUAN TRỌNG CHO DEV
+================================================================
+
+1. SOFT DELETE
+   Các bảng có IsDeleted: Users, Fields, Services, Suppliers, Products
+   Quy tắc: KHÔNG bao giờ DELETE vật lý. SET IsDeleted = 1.
+   Query luôn thêm: WHERE IsDeleted = 0
+
+2. GIÁ TIỀN
+   Kiểu: DECIMAL(12,2) — hỗ trợ tới 9.999.999.999,99đ
+   Đơn vị: VND (đồng)
+   Không lưu giá trị âm (có CHECK constraint)
+
+3. THỜI GIAN
+   Dùng DATETIME2 (độ chính xác cao hơn DATETIME)
+   Hàm lấy giờ hiện tại: SYSDATETIME() (không dùng GETDATE() để nhất quán)
+   Timezone: Server phải set múi giờ Asia/Ho_Chi_Minh trước khi deploy
+
+4. PHÂN QUYỀN API
+   Admin (RoleId=1) : Toàn quyền
+   Staff (RoleId=2) : Quản lý booking, sự cố, kho; không quản lý nhân viên Admin
+   Customer (RoleId=3): Chỉ xem/thao tác dữ liệu của chính mình
+                        (WHERE UserId = currentUserId)
+
+5. MÃ LỖI STORED PROCEDURE
+   50001 — Slot không còn khả dụng (HoldSlots)
+   50002 — Phiên giữ chỗ hết hạn (ConfirmBooking)
+   50003 — Không thể hủy booking ở trạng thái này (CancelBooking)
+   50010 — StartDate > EndDate (GenerateSlots)
+   50020 — Booking không hợp lệ để áp voucher
+   50021 — Voucher không hợp lệ / hết hạn / hết lượt
+   50022 — Đơn hàng chưa đạt giá trị tối thiểu
+   50030 — Đơn nhập kho không hợp lệ
+   50040 — BookingDetail không hợp lệ để đổi lịch
+   50041 — Slot mới không còn trống
+   50042 — Race condition khi đổi slot (thử lại)
+
+   API cần bắt SqlException.Number để trả về lỗi phù hợp cho client.
+
+6. INDEX ĐÃ TẠO SẴN
+   Các index đã được tạo cho những query phổ biến nhất:
+   - FieldSlots theo (FieldId, SlotDate, StatusId)
+   - FieldSlots theo HoldExpireAt (cho job release)
+   - Bookings theo UserId
+   - Bookings theo (StatusId, CreatedAt)
+   - Payments theo TransactionCode
+   - Notifications theo (UserId, IsRead)
+   - Promotions theo Code (active only)
+
+   Không cần tạo thêm index khi mới bắt đầu.
+   Profiling sau khi có data thực để xem có cần thêm không.
+
+
+================================================================
+  SƠ ĐỒ QUAN HỆ TÓM TẮT
+================================================================
+
+  Users ──────────────────────────────────── Profiles (1-1)
+    │                                        RefreshTokens (1-N)
+    │
+    ├── Bookings (1-N)
+    │       ├── BookingDetails (1-N) ──── FieldSlots ──── Fields ──── TimeSlots
+    │       ├── BookingServices (1-N) ─── Services
+    │       ├── Payments (1-N)
+    │       └── Promotions (N-1)
+    │
+    ├── Incidents (báo cáo) ──────────────── Fields
+    ├── FieldMaintenanceLogs ──────────────── Fields
+    ├── Notifications (1-N)
+    └── PurchaseOrders (1-N) ─── Suppliers
+              └── PurchaseOrderDetails ──── Products
+
+
+================================================================
+  CHECKLIST TRƯỚC KHI BẮT ĐẦU VIẾT API
+================================================================
+
+  [ ] Đọc và hiểu vòng đời FieldSlots (Trống → Giữ → Đặt)
+  [ ] Hiểu flow đặt sân 5 bước (Hold → Create Booking → Voucher → Pay → Confirm)
+  [ ] Set timezone SQL Server = Asia/Ho_Chi_Minh
+  [ ] Thay REPLACE_WITH_REAL_BCRYPT_HASH bằng hash thực của admin
+  [ ] Cấu hình SQL Agent Job chạy sp_ReleaseExpiredSlots mỗi 1 phút
+  [ ] Cấu hình SQL Agent Job chạy sp_GenerateSlots mỗi ngày 00:01
+  [ ] Không bao giờ DELETE vật lý — luôn soft delete
+  [ ] Gọi Stored Procedure thay vì viết SQL thủ công cho core business
+
+================================================================
+  Phiên bản: FINAL | Cập nhật: 01/05/2026
+  Người thiết kế: Nhóm phát triển Sport Plus
+================================================================
