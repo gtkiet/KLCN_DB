@@ -913,25 +913,107 @@ GO
 /* ================================================================
    KIỂM TRA KẾT QUẢ
 ================================================================ */
+SELECT [Table], [Count]
+FROM (
+    SELECT N'Users (active)'       AS [Table], COUNT(*) AS [Count]
+    FROM Users
+    WHERE IsDeleted = 0
 
-SELECT [Table], [Count] FROM (
-    SELECT N'Users (active)'               AS [Table], COUNT(*) FROM Users        WHERE IsDeleted=0 UNION ALL
-    SELECT N'Fields (active)',                         COUNT(*) FROM Fields       WHERE IsDeleted=0 AND StatusId=1 UNION ALL
-    SELECT N'TimeSlots',                               COUNT(*) FROM TimeSlots UNION ALL
-    SELECT N'FieldSlots (today+30d)',                  COUNT(*) FROM FieldSlots  WHERE SlotDate >= CAST(GETDATE() AS DATE) UNION ALL
-    SELECT N'Bookings',                                COUNT(*) FROM Bookings UNION ALL
-    SELECT N'Payments',                                COUNT(*) FROM Payments UNION ALL
-    SELECT N'Deposits',                                COUNT(*) FROM Deposits UNION ALL
-    SELECT N'BookingServices',                         COUNT(*) FROM BookingServices UNION ALL
-    SELECT N'Reviews',                                 COUNT(*) FROM Reviews UNION ALL
-    SELECT N'Incidents',                               COUNT(*) FROM Incidents UNION ALL
-    SELECT N'Notifications',                           COUNT(*) FROM Notifications UNION ALL
-    SELECT N'Promotions (active)',                     COUNT(*) FROM Promotions
-        WHERE IsActive=1 AND CAST(GETDATE() AS DATE) BETWEEN StartDate AND EndDate UNION ALL
-    SELECT N'SpecialDays',                             COUNT(*) FROM SpecialDays UNION ALL
-    SELECT N'Products (low stock)',                    COUNT(*) FROM Products WHERE IsDeleted=0 AND StockQty <= MinQty UNION ALL
-    SELECT N'PurchaseOrders',                          COUNT(*) FROM PurchaseOrders
-) t ORDER BY [Table];
+    UNION ALL
+
+    SELECT N'Fields (active)', COUNT(*) AS [Count]
+    FROM Fields
+    WHERE IsDeleted = 0 AND StatusId = 1
+
+    UNION ALL
+
+    SELECT N'TimeSlots', COUNT(*) AS [Count]
+    FROM TimeSlots
+
+    UNION ALL
+
+    SELECT N'FieldSlots (today+30d)', COUNT(*) AS [Count]
+    FROM FieldSlots
+    WHERE SlotDate >= CAST(GETDATE() AS DATE)
+
+    UNION ALL
+
+    SELECT N'Bookings', COUNT(*) AS [Count]
+    FROM Bookings
+
+    UNION ALL
+
+    SELECT N'Payments', COUNT(*) AS [Count]
+    FROM Payments
+
+    UNION ALL
+
+    SELECT N'Deposits', COUNT(*) AS [Count]
+    FROM Deposits
+
+    UNION ALL
+
+    SELECT N'BookingServices', COUNT(*) AS [Count]
+    FROM BookingServices
+
+    UNION ALL
+
+    SELECT N'Reviews', COUNT(*) AS [Count]
+    FROM Reviews
+
+    UNION ALL
+
+    SELECT N'Incidents', COUNT(*) AS [Count]
+    FROM Incidents
+
+    UNION ALL
+
+    SELECT N'Notifications', COUNT(*) AS [Count]
+    FROM Notifications
+
+    UNION ALL
+
+    SELECT N'Promotions (active)', COUNT(*) AS [Count]
+    FROM Promotions
+    WHERE IsActive = 1
+      AND CAST(GETDATE() AS DATE) BETWEEN StartDate AND EndDate
+
+    UNION ALL
+
+    SELECT N'SpecialDays', COUNT(*) AS [Count]
+    FROM SpecialDays
+
+    UNION ALL
+
+    SELECT N'Products (low stock)', COUNT(*) AS [Count]
+    FROM Products
+    WHERE IsDeleted = 0
+      AND StockQty <= MinQty
+
+    UNION ALL
+
+    SELECT N'PurchaseOrders', COUNT(*) AS [Count]
+    FROM PurchaseOrders
+) t
+ORDER BY [Table];
+--SELECT [Table], [Count] FROM (
+--    SELECT N'Users (active)'               AS [Table], COUNT(*) FROM Users        WHERE IsDeleted=0 UNION ALL
+--    SELECT N'Fields (active)',                         COUNT(*) FROM Fields       WHERE IsDeleted=0 AND StatusId=1 UNION ALL
+--    SELECT N'TimeSlots',                               COUNT(*) FROM TimeSlots UNION ALL
+--    SELECT N'FieldSlots (today+30d)',                  COUNT(*) FROM FieldSlots  WHERE SlotDate >= CAST(GETDATE() AS DATE) UNION ALL
+--    SELECT N'Bookings',                                COUNT(*) FROM Bookings UNION ALL
+--    SELECT N'Payments',                                COUNT(*) FROM Payments UNION ALL
+--    SELECT N'Deposits',                                COUNT(*) FROM Deposits UNION ALL
+--    SELECT N'BookingServices',                         COUNT(*) FROM BookingServices UNION ALL
+--    SELECT N'Reviews',                                 COUNT(*) FROM Reviews UNION ALL
+--    SELECT N'Incidents',                               COUNT(*) FROM Incidents UNION ALL
+--    SELECT N'Notifications',                           COUNT(*) FROM Notifications UNION ALL
+--    SELECT N'Promotions (active)',                     COUNT(*) FROM Promotions
+--        WHERE IsActive=1 AND CAST(GETDATE() AS DATE) BETWEEN StartDate AND EndDate UNION ALL
+--    SELECT N'SpecialDays',                             COUNT(*) FROM SpecialDays UNION ALL
+--    SELECT N'Products (low stock)',                    COUNT(*) FROM Products WHERE IsDeleted=0 AND StockQty <= MinQty UNION ALL
+--    SELECT N'PurchaseOrders',                          COUNT(*) FROM PurchaseOrders
+--) t ORDER BY [Table];
 
 PRINT N'';
 PRINT N'====== USERS ======';
