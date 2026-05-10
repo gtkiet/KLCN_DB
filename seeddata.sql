@@ -3,8 +3,8 @@
    ⚠️  PasswordHash là placeholder — thay bằng bcrypt hash thật sau khi có API Auth
 ================================================================ */
 
-USE SportPlusDB;
--- USE db_ac8bb1_klcn;
+--USE SportPlusDB;
+USE db_ac8bb1_klcn;
 GO
 
 /* ================================================================
@@ -43,30 +43,30 @@ SET IDENTITY_INSERT Users ON;
 INSERT INTO Users (UserId, Email, Phone, PasswordHash, FullName, RoleId, StatusId, CreatedAt, UpdatedAt, IsDeleted)
 VALUES
     -- Admin
-    (1,  N'admin@sportplus.vn',       N'0900000001', N'$2a$12$PLACEHOLDER_HASH', N'Nguyễn Quản Trị',   1, 1, DATEADD(MONTH,-6,SYSDATETIME()), SYSDATETIME(), 0),
-    (2,  N'admin2@sportplus.vn',      N'0900000002', N'$2a$12$PLACEHOLDER_HASH', N'Phạm Hoàng Minh',   1, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
+    (1,  N'admin@sportplus.vn',       N'0900000001', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Nguyễn Quản Trị',   1, 1, DATEADD(MONTH,-6,SYSDATETIME()), SYSDATETIME(), 0),
+    (2,  N'admin2@sportplus.vn',      N'0900000002', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Phạm Hoàng Minh',   1, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
 
     -- Staff
-    (3,  N'staff1@sportplus.vn',      N'0900000003', N'$2a$12$PLACEHOLDER_HASH', N'Trần Nhân Viên',    2, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
-    (4,  N'staff2@sportplus.vn',      N'0900000004', N'$2a$12$PLACEHOLDER_HASH', N'Lý Thị Hương',      2, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
-    (5,  N'staff3@sportplus.vn',      N'0900000005', N'$2a$12$PLACEHOLDER_HASH', N'Vũ Đình Khoa',      2, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (3,  N'staff1@sportplus.vn',      N'0900000003', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Trần Nhân Viên',    2, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
+    (4,  N'staff2@sportplus.vn',      N'0900000004', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Lý Thị Hương',      2, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
+    (5,  N'staff3@sportplus.vn',      N'0900000005', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Vũ Đình Khoa',      2, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
 
     -- Customer
-    (6,  N'lekhanhhang@gmail.com',    N'0901111001', N'$2a$12$PLACEHOLDER_HASH', N'Lê Khánh Hàng',     3, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
-    (7,  N'nguyenvana@gmail.com',     N'0901111002', N'$2a$12$PLACEHOLDER_HASH', N'Nguyễn Văn An',     3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
-    (8,  N'tranthib@gmail.com',       N'0901111003', N'$2a$12$PLACEHOLDER_HASH', N'Trần Thị Bích',     3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
-    (9,  N'phamquocc@gmail.com',      N'0901111004', N'$2a$12$PLACEHOLDER_HASH', N'Phạm Quốc Cường',   3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
-    (10, N'hoangminh@gmail.com',      N'0901111005', N'$2a$12$PLACEHOLDER_HASH', N'Hoàng Văn Minh',    3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
-    (11, N'dothithu@gmail.com',       N'0901111006', N'$2a$12$PLACEHOLDER_HASH', N'Đỗ Thị Thu',        3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
-    (12, N'buivanlong@gmail.com',     N'0901111007', N'$2a$12$PLACEHOLDER_HASH', N'Bùi Văn Long',      3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
-    (13, N'ngothanhdat@gmail.com',    N'0901111008', N'$2a$12$PLACEHOLDER_HASH', N'Ngô Thành Đạt',     3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
-    (14, N'vuthimai@gmail.com',       N'0901111009', N'$2a$12$PLACEHOLDER_HASH', N'Vũ Thị Mai',        3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
-    (15, N'dangquochuy@gmail.com',    N'0901111010', N'$2a$12$PLACEHOLDER_HASH', N'Đặng Quốc Huy',     3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
-    (16, N'lythanhphong@gmail.com',   N'0901111011', N'$2a$12$PLACEHOLDER_HASH', N'Lý Thành Phong',    3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
-    (17, N'trinhvankhang@gmail.com',  N'0901111012', N'$2a$12$PLACEHOLDER_HASH', N'Trịnh Văn Khang',   3, 1, DATEADD(WEEK,-3,SYSDATETIME()),  SYSDATETIME(), 0),
-    (18, N'maithibaochi@gmail.com',   N'0901111013', N'$2a$12$PLACEHOLDER_HASH', N'Mai Thị Bảo Chi',   3, 1, DATEADD(WEEK,-2,SYSDATETIME()),  SYSDATETIME(), 0),
-    (19, N'huynhgiabao@gmail.com',    N'0901111014', N'$2a$12$PLACEHOLDER_HASH', N'Huỳnh Gia Bảo',     3, 1, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0),
-    (20, N'caovantu@gmail.com',       N'0901111015', N'$2a$12$PLACEHOLDER_HASH', N'Cao Văn Tú',        3, 2, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0);
+    (6,  N'lekhanhhang@gmail.com',    N'0901111001', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Lê Khánh Hàng',     3, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
+    (7,  N'nguyenvana@gmail.com',     N'0901111002', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Nguyễn Văn An',     3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
+    (8,  N'tranthib@gmail.com',       N'0901111003', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Trần Thị Bích',     3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
+    (9,  N'phamquocc@gmail.com',      N'0901111004', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Phạm Quốc Cường',   3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
+    (10, N'hoangminh@gmail.com',      N'0901111005', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Hoàng Văn Minh',    3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
+    (11, N'dothithu@gmail.com',       N'0901111006', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Đỗ Thị Thu',        3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (12, N'buivanlong@gmail.com',     N'0901111007', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Bùi Văn Long',      3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (13, N'ngothanhdat@gmail.com',    N'0901111008', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Ngô Thành Đạt',     3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (14, N'vuthimai@gmail.com',       N'0901111009', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Vũ Thị Mai',        3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
+    (15, N'dangquochuy@gmail.com',    N'0901111010', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Đặng Quốc Huy',     3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
+    (16, N'lythanhphong@gmail.com',   N'0901111011', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Lý Thành Phong',    3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
+    (17, N'trinhvankhang@gmail.com',  N'0901111012', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Trịnh Văn Khang',   3, 1, DATEADD(WEEK,-3,SYSDATETIME()),  SYSDATETIME(), 0),
+    (18, N'maithibaochi@gmail.com',   N'0901111013', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Mai Thị Bảo Chi',   3, 1, DATEADD(WEEK,-2,SYSDATETIME()),  SYSDATETIME(), 0),
+    (19, N'huynhgiabao@gmail.com',    N'0901111014', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Huỳnh Gia Bảo',     3, 1, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0),
+    (20, N'caovantu@gmail.com',       N'0901111015', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Cao Văn Tú',        3, 2, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0);
     -- UserId 20: bị khóa (StatusId=2) để test
 
 SET IDENTITY_INSERT Users OFF;
