@@ -138,9 +138,10 @@ INSERT INTO IncidentStatuses(Name) VALUES (N'Mới'), (N'Đang xử lý'), (N'Đ
 INSERT INTO PurchaseOrderStatuses(Name) VALUES
     (N'Chờ xác nhận'), (N'Đã nhập'), (N'Đã hủy');
 
--- MethodId: 1=Tiền mặt  2=Chuyển khoản  3=VNPay  4=MoMo
+-- MethodId: 1=Tiền mặt  2=MoMo  3=VNPay  4=Chuyển khoản
 INSERT INTO PaymentMethods(Name) VALUES
-    (N'Tiền mặt'), (N'Chuyển khoản'), (N'VNPay'), (N'MoMo');
+    (N'Tiền mặt'), (N'MoMo');
+    --, (N'VNPay'), (N'Chuyển khoản');
 
 -- TypeId: 1=Phần trăm  2=Số tiền cố định
 INSERT INTO PromotionTypes(Name) VALUES (N'Phần trăm'), (N'Số tiền cố định');
@@ -198,26 +199,26 @@ GO
 SET IDENTITY_INSERT Users ON;
 INSERT INTO Users(UserId, Email, Phone, PasswordHash, FullName, RoleId, StatusId, CreatedAt, UpdatedAt, IsDeleted)
 VALUES
-    (1,  N'admin@sportplus.vn',      N'0900000001', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Nguyễn Quản Trị',  1, 1, DATEADD(MONTH,-6,SYSDATETIME()), SYSDATETIME(), 0),
-    (2,  N'admin2@sportplus.vn',     N'0900000002', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Phạm Hoàng Minh',  1, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
-    (3,  N'staff1@sportplus.vn',     N'0900000003', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Trần Nhân Viên',   2, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
-    (4,  N'staff2@sportplus.vn',     N'0900000004', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Lý Thị Hương',     2, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
-    (5,  N'staff3@sportplus.vn',     N'0900000005', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Vũ Đình Khoa',     2, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
-    (6,  N'lekhanhhang@gmail.com',   N'0901111001', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Lê Khánh Hàng',    3, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
-    (7,  N'nguyenvana@gmail.com',    N'0901111002', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Nguyễn Văn An',    3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
-    (8,  N'tranthib@gmail.com',      N'0901111003', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Trần Thị Bích',    3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
-    (9,  N'phamquocc@gmail.com',     N'0901111004', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Phạm Quốc Cường',  3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
-    (10, N'hoangminh@gmail.com',     N'0901111005', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Hoàng Văn Minh',   3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
-    (11, N'dothithu@gmail.com',      N'0901111006', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Đỗ Thị Thu',       3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
-    (12, N'buivanlong@gmail.com',    N'0901111007', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Bùi Văn Long',     3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
-    (13, N'ngothanhdat@gmail.com',   N'0901111008', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Ngô Thành Đạt',    3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
-    (14, N'vuthimai@gmail.com',      N'0901111009', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Vũ Thị Mai',       3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
-    (15, N'dangquochuy@gmail.com',   N'0901111010', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Đặng Quốc Huy',    3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
-    (16, N'lythanhphong@gmail.com',  N'0901111011', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Lý Thành Phong',   3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
-    (17, N'trinhvankhang@gmail.com', N'0901111012', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Trịnh Văn Khang',  3, 1, DATEADD(WEEK,-3,SYSDATETIME()),  SYSDATETIME(), 0),
-    (18, N'maithibaochi@gmail.com',  N'0901111013', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Mai Thị Bảo Chi',  3, 1, DATEADD(WEEK,-2,SYSDATETIME()),  SYSDATETIME(), 0),
-    (19, N'huynhgiabao@gmail.com',   N'0901111014', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Huỳnh Gia Bảo',    3, 1, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0),
-    (20, N'caovantu@gmail.com',      N'0901111015', N'$2a$12$pheHeSgUlbTPkNZUFgz15.K7asU8my8jkn9vx.n7lv5SDV4sXvzaS', N'Cao Văn Tú',       3, 2, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0);
+    (1,  N'admin@sportplus.vn',      N'0900000001', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Nguyễn Quản Trị',  1, 1, DATEADD(MONTH,-6,SYSDATETIME()), SYSDATETIME(), 0),
+    (2,  N'admin2@sportplus.vn',     N'0900000002', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Phạm Hoàng Minh',  1, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
+    (3,  N'staff1@sportplus.vn',     N'0900000003', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Trần Nhân Viên',   2, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
+    (4,  N'staff2@sportplus.vn',     N'0900000004', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Lý Thị Hương',     2, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
+    (5,  N'staff3@sportplus.vn',     N'0900000005', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Vũ Đình Khoa',     2, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (6,  N'lekhanhhang@gmail.com',   N'0901111001', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Lê Khánh Hàng',    3, 1, DATEADD(MONTH,-5,SYSDATETIME()), SYSDATETIME(), 0),
+    (7,  N'nguyenvana@gmail.com',    N'0901111002', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Nguyễn Văn An',    3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
+    (8,  N'tranthib@gmail.com',      N'0901111003', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Trần Thị Bích',    3, 1, DATEADD(MONTH,-4,SYSDATETIME()), SYSDATETIME(), 0),
+    (9,  N'phamquocc@gmail.com',     N'0901111004', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Phạm Quốc Cường',  3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
+    (10, N'hoangminh@gmail.com',     N'0901111005', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Hoàng Văn Minh',   3, 1, DATEADD(MONTH,-3,SYSDATETIME()), SYSDATETIME(), 0),
+    (11, N'dothithu@gmail.com',      N'0901111006', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Đỗ Thị Thu',       3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (12, N'buivanlong@gmail.com',    N'0901111007', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Bùi Văn Long',     3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (13, N'ngothanhdat@gmail.com',   N'0901111008', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Ngô Thành Đạt',    3, 1, DATEADD(MONTH,-2,SYSDATETIME()), SYSDATETIME(), 0),
+    (14, N'vuthimai@gmail.com',      N'0901111009', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Vũ Thị Mai',       3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
+    (15, N'dangquochuy@gmail.com',   N'0901111010', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Đặng Quốc Huy',    3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
+    (16, N'lythanhphong@gmail.com',  N'0901111011', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Lý Thành Phong',   3, 1, DATEADD(MONTH,-1,SYSDATETIME()), SYSDATETIME(), 0),
+    (17, N'trinhvankhang@gmail.com', N'0901111012', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Trịnh Văn Khang',  3, 1, DATEADD(WEEK,-3,SYSDATETIME()),  SYSDATETIME(), 0),
+    (18, N'maithibaochi@gmail.com',  N'0901111013', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Mai Thị Bảo Chi',  3, 1, DATEADD(WEEK,-2,SYSDATETIME()),  SYSDATETIME(), 0),
+    (19, N'huynhgiabao@gmail.com',   N'0901111014', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Huỳnh Gia Bảo',    3, 1, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0),
+    (20, N'caovantu@gmail.com',      N'0901111015', N'$2a$12$t/sUh7PFXWk4sXetAUIJue68eHBZHWa0tXz9eaeTft5FX/pUoL7kq', N'Cao Văn Tú',       3, 2, DATEADD(WEEK,-1,SYSDATETIME()),  SYSDATETIME(), 0);
     -- UserId 20: StatusId=2 (Bị khóa) để test luồng khóa tài khoản
 SET IDENTITY_INSERT Users OFF;
 GO
@@ -506,10 +507,10 @@ DECLARE
 -- Booking 1–6: đã hoàn thành, thanh toán đủ
 INSERT INTO Payments(BookingId,Amount,StatusId,MethodId,TransactionCode,Note,PaidAt,CreatedAt) VALUES
 (@B1,  300000, 2, 1, NULL,                 N'Tiền mặt tại quầy',       DATEADD(DAY,-30,SYSDATETIME()), DATEADD(DAY,-30,SYSDATETIME())),
-(@B2,  500000, 2, 3, N'VNPAY202603250001', N'VNPay online',             DATEADD(DAY,-25,SYSDATETIME()), DATEADD(DAY,-25,SYSDATETIME())),
-(@B3,  360000, 2, 4, N'MOMO202604010001',  N'MoMo transfer',            DATEADD(DAY,-20,SYSDATETIME()), DATEADD(DAY,-20,SYSDATETIME())),
-(@B4,  180000, 2, 2, N'CK2026040510001',   N'Chuyển khoản MB Bank',     DATEADD(DAY,-15,SYSDATETIME()), DATEADD(DAY,-15,SYSDATETIME())),
-(@B5, 1000000, 2, 3, N'VNPAY202604100001', N'VNPay giải đấu',           DATEADD(DAY,-12,SYSDATETIME()), DATEADD(DAY,-12,SYSDATETIME())),
+(@B2,  500000, 2, 2, N'MOMO202603250001', N'MoMo transfer',             DATEADD(DAY,-25,SYSDATETIME()), DATEADD(DAY,-25,SYSDATETIME())),
+(@B3,  360000, 2, 2, N'MOMO202604010001',  N'MoMo transfer',            DATEADD(DAY,-20,SYSDATETIME()), DATEADD(DAY,-20,SYSDATETIME())),
+(@B4,  180000, 2, 2, N'MOMO202604050001',   N'MoMo transfer',     DATEADD(DAY,-15,SYSDATETIME()), DATEADD(DAY,-15,SYSDATETIME())),
+(@B5, 1000000, 2, 2, N'MOMO202604100001', N'MoMo transfer',           DATEADD(DAY,-12,SYSDATETIME()), DATEADD(DAY,-12,SYSDATETIME())),
 (@B6,  480000, 2, 1, NULL,                 N'Tiền mặt',                 DATEADD(DAY,-10,SYSDATETIME()), DATEADD(DAY,-10,SYSDATETIME())),
 
 -- Booking 7: hủy sớm → hoàn tiền 100%
@@ -517,16 +518,16 @@ INSERT INTO Payments(BookingId,Amount,StatusId,MethodId,TransactionCode,Note,Pai
 (@B7,  200000, 4, 1, NULL,                 N'Hoàn tiền - hủy đủ điều kiện', DATEADD(DAY,-7,SYSDATETIME()), DATEADD(DAY,-7,SYSDATETIME())),
 
 -- Booking 8: hủy muộn → mất cọc 60k, hoàn 240k
-(@B8,  300000, 2, 3, N'VNPAY202604200001', N'Thanh toán VNPay',         DATEADD(DAY,-6,SYSDATETIME()),  DATEADD(DAY,-6,SYSDATETIME())),
-(@B8,  240000, 4, 3, N'REFUND20260421001', N'Hoàn tiền (trừ cọc 60k)',  DATEADD(DAY,-5,SYSDATETIME()),  DATEADD(DAY,-5,SYSDATETIME())),
+(@B8,  300000, 2, 2, N'MOMO202604200001', N'Thanh toán MOMO',         DATEADD(DAY,-6,SYSDATETIME()),  DATEADD(DAY,-6,SYSDATETIME())),
+(@B8,  240000, 4, 2, N'REFUND20260421001', N'Hoàn tiền (trừ cọc 60k)',  DATEADD(DAY,-5,SYSDATETIME()),  DATEADD(DAY,-5,SYSDATETIME())),
 
 -- Booking 10–12: đã xác nhận, thanh toán đủ
-(@B10, 300000, 2, 4, N'MOMO202605010001',  N'MoMo app',                 DATEADD(DAY,-2,SYSDATETIME()),  DATEADD(DAY,-2,SYSDATETIME())),
-(@B11, 450000, 2, 2, N'CK2026050210001',   N'Chuyển khoản Vietcombank', DATEADD(DAY,-1,SYSDATETIME()),  DATEADD(DAY,-1,SYSDATETIME())),
-(@B12, 380000, 2, 3, N'VNPAY202605030001', N'VNPay checkout',           DATEADD(HOUR,-5,SYSDATETIME()), DATEADD(HOUR,-5,SYSDATETIME())),
+(@B10, 300000, 2, 2, N'MOMO202605010001',  N'MoMo app',                 DATEADD(DAY,-2,SYSDATETIME()),  DATEADD(DAY,-2,SYSDATETIME())),
+(@B11, 450000, 2, 2, N'MOMO2026050210001',   N'MOMO', DATEADD(DAY,-1,SYSDATETIME()),  DATEADD(DAY,-1,SYSDATETIME())),
+(@B12, 380000, 2, 2, N'MOMO202605030001', N'MOMO',           DATEADD(HOUR,-5,SYSDATETIME()), DATEADD(HOUR,-5,SYSDATETIME())),
 
 -- Booking 13: đặt cọc 220k (phần còn lại thanh toán khi đến sân)
-(@B13, 220000, 2, 3, N'VNPAY202605030002', N'Thanh toán đặt cọc',       DATEADD(HOUR,-2,SYSDATETIME()), DATEADD(HOUR,-2,SYSDATETIME()));
+(@B13, 220000, 2, 2, N'MOMO202605030002', N'Thanh toán đặt cọc',       DATEADD(HOUR,-2,SYSDATETIME()), DATEADD(HOUR,-2,SYSDATETIME()));
 GO
 
 
