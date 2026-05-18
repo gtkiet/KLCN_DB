@@ -140,8 +140,7 @@ INSERT INTO PurchaseOrderStatuses(Name) VALUES
 
 -- MethodId: 1=Tiền mặt  2=MoMo  3=VNPay  4=Chuyển khoản
 INSERT INTO PaymentMethods(Name) VALUES
-    (N'Tiền mặt'), (N'MoMo');
-    --, (N'VNPay'), (N'Chuyển khoản');
+    (N'Tiền mặt'), (N'MoMo'), (N'VNPay'), (N'Chuyển khoản');
 
 -- TypeId: 1=Phần trăm  2=Số tiền cố định
 INSERT INTO PromotionTypes(Name) VALUES (N'Phần trăm'), (N'Số tiền cố định');

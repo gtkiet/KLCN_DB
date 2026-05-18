@@ -1,9 +1,9 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\Study\\HK8\\KLCN\\KLCN_DB\\",
+  "WorkspaceRootPath": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Study\\HK8\\KLCN\\KLCN_DB\\02_seed.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:02_seed.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}"
     }
   ],
@@ -27,14 +27,14 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (233))",
-              "DocumentMoniker": "D:\\Study\\HK8\\KLCN\\KLCN_DB\\02_seed.sql",
+              "Title": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))",
+              "DocumentMoniker": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql",
               "RelativeDocumentMoniker": "02_seed.sql",
-              "ToolTip": "D:\\Study\\HK8\\KLCN\\KLCN_DB\\02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (233))",
-              "RelativeToolTip": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (233))",
+              "ToolTip": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))",
+              "RelativeToolTip": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2026-05-12T04:17:48.006Z",
-              "EditorCaption": " - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (233))"
+              "WhenOpened": "2026-05-17T07:04:37.8Z",
+              "EditorCaption": " - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))"
             }
           ]
         }

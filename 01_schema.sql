@@ -24,9 +24,9 @@
 USE db_ac8bb1_klcn;
 GO
 
+
 /* ================================================================
    [1] LOOKUP TABLES
-   Mỗi bảng lưu một tập giá trị cố định dùng chung trong hệ thống.
 ================================================================ */
 
 CREATE TABLE Roles (
@@ -117,7 +117,7 @@ CREATE TABLE SystemConfig (
     DataType    NVARCHAR(20)  NOT NULL DEFAULT 'STRING',  -- STRING | INT | DECIMAL | BOOLEAN
     Description NVARCHAR(500),
     UpdatedAt   DATETIME2 DEFAULT SYSDATETIME(),
-    UpdatedBy   INT NULL   -- FK về Users, thêm sau khi có bảng Users
+    UpdatedBy   INT NULL
 );
 GO
 
@@ -150,7 +150,6 @@ ADD CONSTRAINT FK_SystemConfig_UpdatedBy
     FOREIGN KEY(UpdatedBy) REFERENCES Users(UserId);
 GO
 
--- Thông tin bổ sung của user (avatar, ngày sinh, địa chỉ)
 CREATE TABLE Profiles (
     ProfileId   INT IDENTITY PRIMARY KEY,
     UserId      INT UNIQUE NOT NULL,
@@ -161,7 +160,6 @@ CREATE TABLE Profiles (
 );
 GO
 
--- Lưu refresh token để hỗ trợ JWT rotation
 CREATE TABLE RefreshTokens (
     TokenId   INT IDENTITY PRIMARY KEY,
     UserId    INT NOT NULL,
@@ -188,8 +186,8 @@ CREATE TABLE Fields (
     FieldId     INT IDENTITY PRIMARY KEY,
     Name        NVARCHAR(100) NOT NULL,
     Description NVARCHAR(500),
-    BasePrice   DECIMAL(12,2) NOT NULL,   -- Giá giờ thường
-    PeakPrice   DECIMAL(12,2) NOT NULL,   -- Giá giờ cao điểm
+    BasePrice   DECIMAL(12,2) NOT NULL,
+    PeakPrice   DECIMAL(12,2) NOT NULL,
     ImageUrl    NVARCHAR(500),
     TypeId      INT NOT NULL,
     StatusId    INT NOT NULL DEFAULT 1,
@@ -205,7 +203,6 @@ CREATE TABLE Fields (
 );
 GO
 
--- Ghi lại mỗi lần admin thay đổi giá sân
 CREATE TABLE FieldPriceHistory (
     HistoryId    INT IDENTITY PRIMARY KEY,
     FieldId      INT NOT NULL,
@@ -221,7 +218,6 @@ CREATE TABLE FieldPriceHistory (
 );
 GO
 
--- Tự động ghi lịch sử khi BasePrice hoặc PeakPrice thay đổi
 CREATE OR ALTER TRIGGER trg_Fields_PriceHistory
 ON Fields AFTER UPDATE
 AS
@@ -232,25 +228,23 @@ BEGIN
         i.FieldId,
         d.BasePrice, d.PeakPrice,
         i.BasePrice, i.PeakPrice,
-        1  -- UserId=1; trong thực tế lấy từ SESSION_CONTEXT
+        1
     FROM inserted i
     JOIN deleted d ON i.FieldId = d.FieldId
     WHERE i.BasePrice <> d.BasePrice OR i.PeakPrice <> d.PeakPrice;
 END
 GO
 
--- Các khung giờ có thể đặt trong ngày (06:00 – 22:00)
 CREATE TABLE TimeSlots (
     SlotId     INT IDENTITY PRIMARY KEY,
     StartTime  TIME NOT NULL,
     EndTime    TIME NOT NULL,
-    IsPeakHour BIT DEFAULT 0,   -- Mặc định theo cấu hình TimeSlot; có thể override bởi PeakSchedules
+    IsPeakHour BIT DEFAULT 0,
     CONSTRAINT UQ_TimeSlots       UNIQUE(StartTime, EndTime),
     CONSTRAINT CK_TimeSlots_Order CHECK (EndTime > StartTime)
 );
 GO
 
--- Slot cụ thể: FieldId × SlotId × SlotDate, sinh ra bởi sp_GenerateSlots
 CREATE TABLE FieldSlots (
     FieldSlotId  INT IDENTITY PRIMARY KEY,
     FieldId      INT NOT NULL,
@@ -258,7 +252,7 @@ CREATE TABLE FieldSlots (
     SlotDate     DATE NOT NULL,
     Price        DECIMAL(12,2) NOT NULL,
     StatusId     INT NOT NULL DEFAULT 1,   -- 1: Trống  2: Đang giữ  3: Đã đặt
-    HoldExpireAt DATETIME2 NULL,           -- Thời điểm hết hạn giữ chỗ
+    HoldExpireAt DATETIME2 NULL,
     UpdatedAt    DATETIME2 DEFAULT SYSDATETIME(),
 
     CONSTRAINT CK_FieldSlots_Price CHECK (Price > 0),
@@ -269,7 +263,6 @@ CREATE TABLE FieldSlots (
 );
 GO
 
--- Nhật ký bảo trì sân (lý do, khoảng thời gian)
 CREATE TABLE FieldMaintenanceLogs (
     LogId     INT IDENTITY PRIMARY KEY,
     FieldId   INT NOT NULL,
@@ -292,16 +285,14 @@ GO
 
 /* ================================================================
    [5] SPECIAL DAYS & PEAK SCHEDULES
-   Cho phép cấu hình giá và giờ cao điểm linh hoạt theo từng ngày.
 ================================================================ */
 
--- Ngày lễ / sự kiện đặc biệt với hệ số giá riêng
 CREATE TABLE SpecialDays (
     SpecialDayId    INT IDENTITY PRIMARY KEY,
     SpecialDate     DATE NOT NULL,
     Name            NVARCHAR(100) NOT NULL,
-    PriceMultiplier DECIMAL(5,2) NOT NULL DEFAULT 1.0,  -- VD: 1.5 = tăng 50%
-    IsFullDayPeak   BIT DEFAULT 0,                      -- 1 = cả ngày tính giờ cao điểm
+    PriceMultiplier DECIMAL(5,2) NOT NULL DEFAULT 1.0,
+    IsFullDayPeak   BIT DEFAULT 0,
     Note            NVARCHAR(255),
     CreatedBy       INT NOT NULL,
     CreatedAt       DATETIME2 DEFAULT SYSDATETIME(),
@@ -311,7 +302,6 @@ CREATE TABLE SpecialDays (
 );
 GO
 
--- Cấu hình giờ cao điểm theo thứ trong tuần (1=CN … 7=T7)
 CREATE TABLE PeakSchedules (
     PeakScheduleId INT IDENTITY PRIMARY KEY,
     DayOfWeek      TINYINT NOT NULL,
@@ -354,20 +344,18 @@ CREATE TABLE Bookings (
 );
 GO
 
--- Chi tiết từng slot trong booking
 CREATE TABLE BookingDetails (
     BookingDetailId INT IDENTITY PRIMARY KEY,
     BookingId       INT NOT NULL,
     FieldSlotId     INT NOT NULL,
     Price           DECIMAL(12,2) NOT NULL,
     CONSTRAINT CK_BookingDetails_Price CHECK (Price > 0),
-    CONSTRAINT UQ_BookingDetail_Slot   UNIQUE(FieldSlotId),  -- 1 slot chỉ thuộc 1 booking
+    CONSTRAINT UQ_BookingDetail_Slot   UNIQUE(FieldSlotId),
     FOREIGN KEY(BookingId)   REFERENCES Bookings(BookingId),
     FOREIGN KEY(FieldSlotId) REFERENCES FieldSlots(FieldSlotId)
 );
 GO
 
--- Giao dịch thanh toán (có thể nhiều lần: cọc + phần còn lại)
 CREATE TABLE Payments (
     PaymentId       INT IDENTITY PRIMARY KEY,
     BookingId       INT NOT NULL,
@@ -397,21 +385,21 @@ GO
 /* ================================================================
    [7] DEPOSITS
    Tách riêng khỏi Payments để theo dõi trạng thái cọc độc lập.
-   - Thanh toán full ngay: không tạo bản ghi Deposit.
-   - Thanh toán sau      : tạo Deposit, slot chỉ được giữ sau khi cọc.
+   - Thanh toán full ngay : không tạo bản ghi Deposit.
+   - Thanh toán có cọc   : tạo Deposit, booking chỉ xác nhận sau khi cọc.
 ================================================================ */
 
 CREATE TABLE Deposits (
     DepositId      INT IDENTITY PRIMARY KEY,
-    BookingId      INT NOT NULL UNIQUE,           -- 1 booking → 1 deposit
+    BookingId      INT NOT NULL UNIQUE,
     RequiredAmount DECIMAL(12,2) NOT NULL,
     PaidAmount     DECIMAL(12,2) DEFAULT 0,
     StatusId       INT NOT NULL DEFAULT 1,
-    DeadlineAt     DATETIME2 NOT NULL,            -- Hạn phải nộp cọc
+    DeadlineAt     DATETIME2 NOT NULL,
     PaidAt         DATETIME2 NULL,
     RefundedAt     DATETIME2 NULL,
-    ForfeitedAt    DATETIME2 NULL,               -- Tịch thu khi hủy muộn
-    PaymentId      INT NULL,                     -- Bản ghi Payment của tiền cọc
+    ForfeitedAt    DATETIME2 NULL,
+    PaymentId      INT NULL,
     Note           NVARCHAR(255),
     CreatedAt      DATETIME2 DEFAULT SYSDATETIME(),
     UpdatedAt      DATETIME2 DEFAULT SYSDATETIME(),
@@ -431,7 +419,6 @@ GO
 
 /* ================================================================
    [8] BOOKING LOGS
-   Lịch sử thay đổi trạng thái booking, tự động ghi qua trigger.
 ================================================================ */
 
 CREATE TABLE BookingLogs (
@@ -483,7 +470,6 @@ CREATE TABLE Services (
 );
 GO
 
--- Dịch vụ đã chọn trong mỗi booking (số lượng, đơn giá tại thời điểm đặt)
 CREATE TABLE BookingServices (
     BookingServiceId INT IDENTITY PRIMARY KEY,
     BookingId        INT NOT NULL,
@@ -511,9 +497,9 @@ CREATE TABLE Promotions (
     Code           NVARCHAR(50)  NOT NULL,
     Name           NVARCHAR(200) NOT NULL,
     Description    NVARCHAR(500),
-    TypeId         INT NOT NULL,                   -- 1: Phần trăm  2: Số tiền cố định
+    TypeId         INT NOT NULL,
     DiscountValue  DECIMAL(12,2) NOT NULL,
-    MaxDiscount    DECIMAL(12,2) NULL,             -- Trần giảm tối đa (dùng với loại %)
+    MaxDiscount    DECIMAL(12,2) NULL,
     MinOrderAmount DECIMAL(12,2) DEFAULT 0,
     UsageLimit     INT DEFAULT 1,
     UsageCount     INT DEFAULT 0,
@@ -560,8 +546,8 @@ CREATE TABLE Products (
     ProductId INT IDENTITY PRIMARY KEY,
     Name      NVARCHAR(100) NOT NULL,
     Unit      NVARCHAR(50),
-    StockQty  INT DEFAULT 0,   -- Tồn kho hiện tại
-    MinQty    INT DEFAULT 5,   -- Mức cảnh báo sắp hết
+    StockQty  INT DEFAULT 0,
+    MinQty    INT DEFAULT 5,
     IsDeleted BIT DEFAULT 0,
     CONSTRAINT CK_Products_StockQty CHECK (StockQty >= 0),
     CONSTRAINT CK_Products_MinQty   CHECK (MinQty   >= 0)
@@ -629,18 +615,18 @@ GO
 
 /* ================================================================
    [13] REVIEWS
-   Chỉ cho phép đánh giá sau khi booking Đã hoàn thành (StatusId=4).
+   Chỉ cho phép đánh giá sau khi booking đã hoàn thành (StatusId=4).
 ================================================================ */
 
 CREATE TABLE Reviews (
     ReviewId  INT IDENTITY PRIMARY KEY,
-    BookingId INT NOT NULL UNIQUE,   -- 1 booking → 1 review
+    BookingId INT NOT NULL UNIQUE,
     UserId    INT NOT NULL,
     FieldId   INT NOT NULL,
     Rating    TINYINT NOT NULL,      -- 1–5 sao
     Comment   NVARCHAR(1000),
     ImageUrl  NVARCHAR(500),
-    IsVisible BIT DEFAULT 1,         -- Admin có thể ẩn review vi phạm
+    IsVisible BIT DEFAULT 1,
     CreatedAt DATETIME2 DEFAULT SYSDATETIME(),
     UpdatedAt DATETIME2 DEFAULT SYSDATETIME(),
     CONSTRAINT CK_Reviews_Rating CHECK (Rating BETWEEN 1 AND 5),
@@ -665,7 +651,7 @@ CREATE TABLE Notifications (
     Body           NVARCHAR(1000),
     Type           NVARCHAR(50),
     -- BOOKING_CONFIRM | BOOKING_CANCEL | PAYMENT | DEPOSIT | INCIDENT | REVIEW | SYSTEM
-    RefId          INT NULL,    -- ID của đối tượng liên quan (BookingId, IncidentId…)
+    RefId          INT NULL,
     IsRead         BIT DEFAULT 0,
     CreatedAt      DATETIME2 DEFAULT SYSDATETIME(),
     FOREIGN KEY(UserId) REFERENCES Users(UserId)
@@ -680,7 +666,6 @@ GO
    [15] STORED PROCEDURES & FUNCTIONS
 ================================================================ */
 
--- Đọc cấu hình dạng số thực từ SystemConfig
 CREATE OR ALTER FUNCTION fn_GetConfig(@Key NVARCHAR(100))
 RETURNS DECIMAL(18,4)
 AS
@@ -692,7 +677,6 @@ BEGIN
 END
 GO
 
--- Đọc cấu hình dạng chuỗi từ SystemConfig
 CREATE OR ALTER FUNCTION fn_GetConfigStr(@Key NVARCHAR(100))
 RETURNS NVARCHAR(500)
 AS
@@ -817,7 +801,7 @@ BEGIN
 
     IF @UserId IS NOT NULL
     BEGIN
-        DECLARE @MaxActive INT  = CAST(dbo.fn_GetConfig('MAX_ACTIVE_BOOKINGS_PER_USER') AS INT);
+        DECLARE @MaxActive  INT = CAST(dbo.fn_GetConfig('MAX_ACTIVE_BOOKINGS_PER_USER') AS INT);
         DECLARE @ActiveCount INT = (
             SELECT COUNT(*) FROM Bookings
             WHERE UserId = @UserId AND StatusId IN (1, 2, 5)
@@ -869,9 +853,10 @@ END
 GO
 
 /* ----------------------------------------------------------------
-   SP-3: Xác nhận booking và xử lý đặt cọc.
-   @IsFullPayment=1 → thanh toán ngay, không cọc.
-   @IsFullPayment=0 → tạo bản ghi Deposit, booking chuyển sang Chờ đặt cọc.
+   SP-3: Xác nhận booking (Customer online).
+   @IsFullPayment=1 → không cọc, booking → StatusId=2.
+   @IsFullPayment=0 → tạo Deposit, booking → StatusId=5.
+   Yêu cầu slot đang ở trạng thái Holding (đã qua sp_HoldSlots).
    Ví dụ:
      EXEC sp_ConfirmBooking @BookingId=1, @FieldSlotIds='1,2', @IsFullPayment=1
      EXEC sp_ConfirmBooking @BookingId=1, @FieldSlotIds='1,2', @IsFullPayment=0
@@ -934,12 +919,12 @@ BEGIN
     IF @IsFullPayment = 1 OR @DepositPct = 0
     BEGIN
         SET @DepositAmount    = 0;
-        SET @NewBookingStatus = 2;  -- Đã xác nhận
+        SET @NewBookingStatus = 2;
     END
     ELSE
     BEGIN
         SET @DepositAmount    = CEILING(@TotalAmount * @DepositPct / 100);
-        SET @NewBookingStatus = 5;  -- Chờ đặt cọc
+        SET @NewBookingStatus = 5;
 
         DECLARE @DepositHours INT = CAST(dbo.fn_GetConfig('DEPOSIT_DEADLINE_HOURS') AS INT);
         INSERT INTO Deposits(BookingId, RequiredAmount, StatusId, DeadlineAt)
@@ -960,8 +945,88 @@ END
 GO
 
 /* ----------------------------------------------------------------
+   SP-3b: Xác nhận booking walk-in (Admin/Staff tại quầy).
+   Chiếm slot Available trực tiếp — không cần hold trước.
+   Booking luôn → StatusId=2 bất kể IsFullPayment.
+   Ví dụ:
+     EXEC sp_ConfirmAdminWalkIn @BookingId=1, @FieldSlotIds='5,6', @IsFullPayment=1
+---------------------------------------------------------------- */
+CREATE OR ALTER PROCEDURE sp_ConfirmAdminWalkIn
+    @BookingId     INT,
+    @FieldSlotIds  NVARCHAR(MAX),
+    @IsFullPayment BIT = 0,
+    @UserId        INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+    BEGIN TRAN;
+
+    CREATE TABLE #SlotIds(Id INT PRIMARY KEY);
+    INSERT INTO #SlotIds(Id)
+    SELECT DISTINCT CAST(TRIM(value) AS INT)
+    FROM STRING_SPLIT(@FieldSlotIds, ',')
+    WHERE TRIM(value) <> '';
+
+    DECLARE @Count INT = (SELECT COUNT(*) FROM #SlotIds);
+    IF @Count = 0
+    BEGIN
+        ROLLBACK;
+        THROW 50110, N'Không có khung giờ nào được chọn.', 1;
+    END
+
+    UPDATE fs
+    SET StatusId     = 3,
+        HoldExpireAt = NULL,
+        UpdatedAt    = SYSDATETIME()
+    FROM FieldSlots fs
+    JOIN #SlotIds t ON fs.FieldSlotId = t.Id
+    WHERE fs.StatusId = 1;
+
+    IF @@ROWCOUNT < @Count
+    BEGIN
+        ROLLBACK;
+        THROW 50111, N'Một hoặc nhiều khung giờ đã không còn trống. Vui lòng tải lại.', 1;
+    END
+
+    INSERT INTO BookingDetails(BookingId, FieldSlotId, Price)
+    SELECT @BookingId, fs.FieldSlotId, fs.Price
+    FROM FieldSlots fs
+    JOIN #SlotIds t ON fs.FieldSlotId = t.Id;
+
+    DECLARE @SubTotal DECIMAL(12,2) =
+        ISNULL((SELECT SUM(bd.Price) FROM BookingDetails bd WHERE bd.BookingId = @BookingId), 0)
+      + ISNULL((SELECT SUM(bs.Quantity * bs.UnitPrice) FROM BookingServices bs WHERE bs.BookingId = @BookingId), 0);
+
+    DECLARE @TaxPct    DECIMAL(5,2)  = dbo.fn_GetConfig('TAX_PERCENT');
+    DECLARE @TaxAmount DECIMAL(12,2) = ROUND(@SubTotal * @TaxPct / 100, 0);
+
+    DECLARE @DiscountAmt DECIMAL(12,2) =
+        ISNULL((SELECT DiscountAmount FROM Bookings WHERE BookingId = @BookingId), 0);
+    DECLARE @TotalAmount DECIMAL(12,2) = @SubTotal - @DiscountAmt + @TaxAmount;
+    IF @TotalAmount < 0 SET @TotalAmount = 0;
+
+    DECLARE @DepositPct    DECIMAL(5,2)  = dbo.fn_GetConfig('DEPOSIT_REQUIRED_PERCENT');
+    DECLARE @DepositAmount DECIMAL(12,2) = 0;
+    IF NOT (@IsFullPayment = 1 OR @DepositPct = 0)
+        SET @DepositAmount = CEILING(@TotalAmount * @DepositPct / 100);
+
+    UPDATE Bookings
+    SET SubTotal      = @SubTotal,
+        TaxAmount     = @TaxAmount,
+        TotalAmount   = @TotalAmount,
+        DepositAmount = @DepositAmount,
+        StatusId      = 2,
+        UpdatedAt     = SYSDATETIME()
+    WHERE BookingId = @BookingId;
+
+    COMMIT;
+END
+GO
+
+/* ----------------------------------------------------------------
    SP-4: Ghi nhận thanh toán đặt cọc.
-   Chuyển Deposit sang Đã nộp, booking sang Đã xác nhận.
+   Chuyển Deposit → Đã nộp, Booking → Đã xác nhận (StatusId=2).
    Ví dụ:
      EXEC sp_RecordDeposit @BookingId=1, @Amount=60000, @MethodId=1,
                            @TransactionCode='TXN123'
@@ -1019,7 +1084,11 @@ END
 GO
 
 /* ----------------------------------------------------------------
-   SP-5: Thanh toán phần còn lại sau khi đã đặt cọc.
+   SP-5: Thanh toán phần còn lại.
+   Ghi Payment, chuyển Booking → StatusId=4 (Hoàn thành) ngay sau
+   khi thanh toán đủ — không phụ thuộc ngày slot.
+   Background job sp_ReleaseExpiredSlots vẫn xử lý auto-complete
+   cho booking đã qua ngày mà chưa ghi nhận đủ payment.
    Ví dụ: EXEC sp_RecordFullPayment @BookingId=1, @MethodId=1
 ---------------------------------------------------------------- */
 CREATE OR ALTER PROCEDURE sp_RecordFullPayment
@@ -1061,15 +1130,10 @@ BEGIN
     VALUES (@BookingId, @Remaining, 2, @MethodId, @TransactionCode,
             N'Thanh toán phần còn lại', SYSDATETIME());
 
-    DECLARE @LastSlotDate DATE;
-    SELECT @LastSlotDate = MAX(fs.SlotDate)
-    FROM BookingDetails bd
-    JOIN FieldSlots fs ON bd.FieldSlotId = fs.FieldSlotId
-    WHERE bd.BookingId = @BookingId;
-
-    IF @LastSlotDate <= CAST(SYSDATETIME() AS DATE)
-        UPDATE Bookings SET StatusId = 4, UpdatedAt = SYSDATETIME()
-        WHERE BookingId = @BookingId;
+    UPDATE Bookings
+    SET StatusId  = 4,
+        UpdatedAt = SYSDATETIME()
+    WHERE BookingId = @BookingId;
 
     COMMIT;
 END
@@ -1199,14 +1263,13 @@ GO
 
 /* ----------------------------------------------------------------
    SP-7: Giải phóng slot và deposit hết hạn.
-   Chạy định kỳ mỗi 1 phút qua SQL Agent Job.
+   Chạy định kỳ mỗi 1 phút qua SQL Agent Job hoặc C# BackgroundService.
 ---------------------------------------------------------------- */
 CREATE OR ALTER PROCEDURE sp_ReleaseExpiredSlots
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Trả slot về Trống khi hết thời gian hold
     UPDATE FieldSlots
     SET StatusId     = 1,
         HoldExpireAt = NULL,
@@ -1214,7 +1277,6 @@ BEGIN
     WHERE StatusId    = 2
       AND HoldExpireAt < SYSDATETIME();
 
-    -- Hủy booking Chờ thanh toán đã quá 15 phút mà không còn slot hold hợp lệ
     UPDATE b
     SET b.StatusId     = 3,
         b.UpdatedAt    = SYSDATETIME(),
@@ -1231,7 +1293,6 @@ BEGIN
             AND fs.HoldExpireAt >= SYSDATETIME()
       );
 
-    -- Hủy booking Chờ đặt cọc đã quá deadline
     UPDATE b
     SET b.StatusId     = 3,
         b.UpdatedAt    = SYSDATETIME(),
@@ -1242,7 +1303,6 @@ BEGIN
       AND d.StatusId = 1
       AND d.DeadlineAt < SYSDATETIME();
 
-    -- Trả slot về Trống cho các booking bị hủy do quá hạn cọc
     UPDATE fs
     SET fs.StatusId     = 1,
         fs.HoldExpireAt = NULL,
@@ -1254,14 +1314,13 @@ BEGIN
       AND b.CancelReason  = N'Quá hạn nộp cọc, tự động hủy'
       AND fs.StatusId     = 3;
 
-    -- Đánh dấu deposit quá hạn mà chưa nộp → Đã tịch thu
     UPDATE Deposits
     SET StatusId  = 4,
         UpdatedAt = SYSDATETIME()
     WHERE StatusId  = 1
       AND DeadlineAt < SYSDATETIME();
 
-    -- Tự động hoàn thành booking đã qua ngày thi đấu cuối
+    -- Auto-complete booking đã xác nhận mà slot date đã qua (chưa trả đủ tiền)
     UPDATE b
     SET b.StatusId  = 4,
         b.UpdatedAt = SYSDATETIME()
@@ -1490,7 +1549,6 @@ GO
    [16] VIEWS
 ================================================================ */
 
--- Lịch sân theo ngày, bao gồm thông tin slot, giá, trạng thái, thời gian hold còn lại
 CREATE OR ALTER VIEW vw_FieldSchedule AS
 SELECT
     fs.FieldSlotId,
@@ -1518,7 +1576,6 @@ JOIN FieldSlotStatuses fss ON fs.StatusId = fss.StatusId
 WHERE f.IsDeleted = 0;
 GO
 
--- Lịch sử booking đầy đủ: thông tin khách, sân, slot, thanh toán, cọc
 CREATE OR ALTER VIEW vw_BookingHistory AS
 SELECT
     b.BookingId,
@@ -1574,7 +1631,6 @@ LEFT JOIN Deposits        d  ON b.BookingId   = d.BookingId
 LEFT JOIN DepositStatuses ds ON d.StatusId    = ds.StatusId;
 GO
 
--- Danh sách booking đang chờ nộp cọc, dùng cho dashboard quản lý
 CREATE OR ALTER VIEW vw_PendingDeposits AS
 SELECT
     b.BookingId,
@@ -1599,7 +1655,6 @@ GROUP BY b.BookingId, u.FullName, u.Phone, b.TotalAmount,
          d.RequiredAmount, d.PaidAmount, d.DeadlineAt, b.CreatedAt;
 GO
 
--- Doanh thu theo tháng từ các booking đã xác nhận và đã hoàn thành
 CREATE OR ALTER VIEW vw_RevenueByMonth AS
 SELECT
     YEAR(b.CreatedAt)           AS [Year],
@@ -1617,7 +1672,6 @@ WHERE b.StatusId IN (2, 4)
 GROUP BY YEAR(b.CreatedAt), MONTH(b.CreatedAt);
 GO
 
--- Tỷ lệ lấp đầy slot của từng sân theo tháng
 CREATE OR ALTER VIEW vw_FieldOccupancyByMonth AS
 SELECT
     f.FieldId,
@@ -1638,7 +1692,6 @@ WHERE f.IsDeleted = 0
 GROUP BY f.FieldId, f.Name, ft.Name, YEAR(fs.SlotDate), MONTH(fs.SlotDate);
 GO
 
--- Doanh thu theo từng dịch vụ đi kèm
 CREATE OR ALTER VIEW vw_RevenueByService AS
 SELECT
     s.ServiceId,
@@ -1653,7 +1706,6 @@ WHERE b.StatusId IN (2, 4)
 GROUP BY s.ServiceId, s.Name;
 GO
 
--- Sản phẩm tồn kho dưới mức tối thiểu (cần nhập thêm)
 CREATE OR ALTER VIEW vw_LowStockProducts AS
 SELECT
     p.ProductId, p.Name, p.Unit,
@@ -1663,7 +1715,6 @@ FROM Products p
 WHERE p.IsDeleted = 0 AND p.StockQty <= p.MinQty;
 GO
 
--- Tổng hợp rating theo sân: điểm trung bình và phân bố theo số sao
 CREATE OR ALTER VIEW vw_FieldRatings AS
 SELECT
     f.FieldId,
@@ -1683,7 +1734,6 @@ WHERE f.IsDeleted = 0
 GROUP BY f.FieldId, f.Name, ft.Name;
 GO
 
--- Dashboard tổng quan: số liệu thời gian thực cho màn hình quản lý
 CREATE OR ALTER VIEW vw_DashboardSummary AS
 SELECT
     (SELECT COUNT(*) FROM Bookings WHERE StatusId = 1)
@@ -1707,7 +1757,7 @@ SELECT
     (SELECT COUNT(*) FROM vw_LowStockProducts)
         AS LowStockCount,
     (SELECT COUNT(*) FROM vw_PendingDeposits WHERE MinutesLeft < 30)
-        AS UrgentDepositCount;  -- Cọc sắp hết hạn dưới 30 phút
+        AS UrgentDepositCount;
 GO
 
 
