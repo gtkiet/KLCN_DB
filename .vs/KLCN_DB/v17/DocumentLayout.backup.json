@@ -27,14 +27,14 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))",
+              "Title": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))",
               "DocumentMoniker": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql",
               "RelativeDocumentMoniker": "02_seed.sql",
-              "ToolTip": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))",
-              "RelativeToolTip": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))",
+              "ToolTip": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))",
+              "RelativeToolTip": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2026-05-17T07:04:37.8Z",
-              "EditorCaption": " - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (72))"
+              "WhenOpened": "2026-05-17T09:14:02.251Z",
+              "EditorCaption": " - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))"
             }
           ]
         }
