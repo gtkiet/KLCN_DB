@@ -5,6 +5,10 @@
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:02_seed.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\01_schema.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:01_schema.sql||{B5A506EB-11BE-4782-9A18-21265C2CA0B4}"
     }
   ],
   "DocumentGroupContainers": [
@@ -27,14 +31,26 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))",
+              "Title": "02_seed.sql - not connected",
               "DocumentMoniker": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql",
               "RelativeDocumentMoniker": "02_seed.sql",
-              "ToolTip": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))",
-              "RelativeToolTip": "02_seed.sql - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))",
+              "ToolTip": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\02_seed.sql - not connected",
+              "RelativeToolTip": "02_seed.sql - not connected",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
-              "WhenOpened": "2026-05-17T09:14:02.251Z",
-              "EditorCaption": " - SQL1001.site4now.net.db_ac8bb1_klcn (db_ac8bb1_klcn_admin (479))"
+              "WhenOpened": "2026-05-19T04:46:15.914Z",
+              "EditorCaption": " - not connected"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "01_schema.sql - not connected",
+              "DocumentMoniker": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\01_schema.sql",
+              "RelativeDocumentMoniker": "01_schema.sql",
+              "ToolTip": "D:\\Study\\HK8\\KLCN\\KLCN_ALL-PROJECTS\\KLCN_DB\\01_schema.sql - not connected",
+              "RelativeToolTip": "01_schema.sql - not connected",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000826|",
+              "WhenOpened": "2026-05-19T04:46:08.138Z",
+              "EditorCaption": " - not connected"
             }
           ]
         }
