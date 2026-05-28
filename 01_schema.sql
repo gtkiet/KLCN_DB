@@ -1,5 +1,5 @@
 ﻿/* ================================================================
-   SportPlusDB — Schema
+   SportPlusDB — Schema  (optimized)
    Stack : SQL Server 2019+
    Mục lục:
      [1]  Lookup tables
@@ -31,76 +31,76 @@ GO
 
 CREATE TABLE Roles (
     RoleId INT IDENTITY PRIMARY KEY,
-    Name   NVARCHAR(50) UNIQUE NOT NULL   -- Admin | Staff | Customer
+    Name   NVARCHAR(50) UNIQUE NOT NULL   -- 1:Admin | 2:Staff | 3:Customer
 );
 GO
 
 CREATE TABLE UserStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
-    Name     NVARCHAR(50) UNIQUE NOT NULL  -- Hoạt động | Bị khóa
+    Name     NVARCHAR(50) UNIQUE NOT NULL  -- 1:Hoạt động | 2:Bị khóa
 );
 GO
 
 CREATE TABLE FieldTypes (
     TypeId INT IDENTITY PRIMARY KEY,
-    Name   NVARCHAR(50) UNIQUE NOT NULL   -- Sân 5 | Sân 7
+    Name   NVARCHAR(50) UNIQUE NOT NULL   -- 1:Sân 5 | 2:Sân 7
 );
 GO
 
 CREATE TABLE FieldStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
-    Name     NVARCHAR(50) UNIQUE NOT NULL  -- Hoạt động | Bảo trì
+    Name     NVARCHAR(50) UNIQUE NOT NULL  -- 1:Hoạt động | 2:Bảo trì
 );
 GO
 
 CREATE TABLE FieldSlotStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
-    Name     NVARCHAR(50) UNIQUE NOT NULL  -- Trống | Đang giữ | Đã đặt
+    Name     NVARCHAR(50) UNIQUE NOT NULL  -- 1:Trống | 2:Đang giữ | 3:Đã đặt
 );
 GO
 
 CREATE TABLE BookingStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
     Name     NVARCHAR(50) UNIQUE NOT NULL
-    -- 1: Chờ thanh toán  2: Đã xác nhận  3: Đã hủy  4: Đã hoàn thành  5: Chờ đặt cọc
+    -- 1:Chờ thanh toán | 2:Đã xác nhận | 3:Đã hủy | 4:Đã hoàn thành | 5:Chờ đặt cọc
 );
 GO
 
 CREATE TABLE PaymentStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
     Name     NVARCHAR(50) UNIQUE NOT NULL
-    -- 1: Chưa thanh toán  2: Đã thanh toán  3: Thất bại  4: Đã hoàn tiền
+    -- 1:Chưa thanh toán | 2:Đã thanh toán | 3:Thất bại | 4:Đã hoàn tiền
 );
 GO
 
 CREATE TABLE IncidentStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
-    Name     NVARCHAR(50) UNIQUE NOT NULL  -- Mới | Đang xử lý | Đã xử lý
+    Name     NVARCHAR(50) UNIQUE NOT NULL  -- 1:Mới | 2:Đang xử lý | 3:Đã xử lý
 );
 GO
 
 CREATE TABLE PurchaseOrderStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
-    Name     NVARCHAR(50) UNIQUE NOT NULL  -- Chờ xác nhận | Đã nhập | Đã hủy
+    Name     NVARCHAR(50) UNIQUE NOT NULL  -- 1:Chờ xác nhận | 2:Đã nhập | 3:Đã hủy
 );
 GO
 
 CREATE TABLE PaymentMethods (
     MethodId INT IDENTITY PRIMARY KEY,
-    Name     NVARCHAR(50) UNIQUE NOT NULL  -- Tiền mặt | Chuyển khoản | VNPay | MoMo
+    Name     NVARCHAR(50) UNIQUE NOT NULL  -- 1:Tiền mặt | 2:MoMo | 3:VNPay | 4:Chuyển khoản
 );
 GO
 
 CREATE TABLE PromotionTypes (
     TypeId INT IDENTITY PRIMARY KEY,
-    Name   NVARCHAR(50) UNIQUE NOT NULL   -- Phần trăm | Số tiền cố định
+    Name   NVARCHAR(50) UNIQUE NOT NULL   -- 1:Phần trăm | 2:Số tiền cố định
 );
 GO
 
 CREATE TABLE DepositStatuses (
     StatusId INT IDENTITY PRIMARY KEY,
     Name     NVARCHAR(50) UNIQUE NOT NULL
-    -- 1: Chờ nộp  2: Đã nộp  3: Đã hoàn  4: Đã tịch thu
+    -- 1:Chờ nộp | 2:Đã nộp | 3:Đã hoàn | 4:Đã tịch thu
 );
 GO
 
@@ -195,9 +195,9 @@ CREATE TABLE Fields (
     CreatedAt   DATETIME2 DEFAULT SYSDATETIME(),
     UpdatedAt   DATETIME2 DEFAULT SYSDATETIME(),
 
-    CONSTRAINT CK_Fields_BasePrice   CHECK (BasePrice > 0),
-    CONSTRAINT CK_Fields_PeakPrice   CHECK (PeakPrice > 0),
-    CONSTRAINT CK_Fields_PeakGtBase  CHECK (PeakPrice >= BasePrice),
+    CONSTRAINT CK_Fields_BasePrice  CHECK (BasePrice  > 0),
+    CONSTRAINT CK_Fields_PeakPrice  CHECK (PeakPrice  > 0),
+    CONSTRAINT CK_Fields_PeakGtBase CHECK (PeakPrice >= BasePrice),
     FOREIGN KEY(TypeId)   REFERENCES FieldTypes(TypeId),
     FOREIGN KEY(StatusId) REFERENCES FieldStatuses(StatusId)
 );
@@ -223,12 +223,16 @@ ON Fields AFTER UPDATE
 AS
 BEGIN
     SET NOCOUNT ON;
+    DECLARE @ChangedBy INT = ISNULL(
+        CAST(SUBSTRING(CAST(CONTEXT_INFO() AS VARBINARY(4)), 1, 4) AS INT),
+        1
+    );
     INSERT INTO FieldPriceHistory(FieldId, OldBasePrice, OldPeakPrice, NewBasePrice, NewPeakPrice, ChangedBy)
     SELECT
         i.FieldId,
         d.BasePrice, d.PeakPrice,
         i.BasePrice, i.PeakPrice,
-        1
+        @ChangedBy
     FROM inserted i
     JOIN deleted d ON i.FieldId = d.FieldId
     WHERE i.BasePrice <> d.BasePrice OR i.PeakPrice <> d.PeakPrice;
@@ -251,7 +255,7 @@ CREATE TABLE FieldSlots (
     SlotId       INT NOT NULL,
     SlotDate     DATE NOT NULL,
     Price        DECIMAL(12,2) NOT NULL,
-    StatusId     INT NOT NULL DEFAULT 1,   -- 1: Trống  2: Đang giữ  3: Đã đặt
+    StatusId     INT NOT NULL DEFAULT 1,   -- 1:Trống | 2:Đang giữ | 3:Đã đặt
     HoldExpireAt DATETIME2 NULL,
     UpdatedAt    DATETIME2 DEFAULT SYSDATETIME(),
 
@@ -277,9 +281,9 @@ CREATE TABLE FieldMaintenanceLogs (
 );
 GO
 
-CREATE INDEX IX_Fields_TypeStatus     ON Fields(TypeId, StatusId) WHERE IsDeleted = 0;
+CREATE INDEX IX_Fields_TypeStatus     ON Fields(TypeId, StatusId)      WHERE IsDeleted = 0;
 CREATE INDEX IX_FieldSlots_Search     ON FieldSlots(FieldId, SlotDate, StatusId);
-CREATE INDEX IX_FieldSlots_HoldExpire ON FieldSlots(HoldExpireAt) WHERE StatusId = 2;
+CREATE INDEX IX_FieldSlots_HoldExpire ON FieldSlots(HoldExpireAt)      WHERE StatusId = 2;
 GO
 
 
@@ -341,6 +345,7 @@ CREATE TABLE Bookings (
     CONSTRAINT CK_Bookings_DepositAmount  CHECK (DepositAmount >= 0),
     FOREIGN KEY(UserId)   REFERENCES Users(UserId),
     FOREIGN KEY(StatusId) REFERENCES BookingStatuses(StatusId)
+    -- FK_Bookings_Promotion thêm sau khi tạo Promotions (section [10])
 );
 GO
 
@@ -517,12 +522,13 @@ CREATE TABLE Promotions (
 );
 GO
 
+-- FK được thêm sau khi Promotions đã tồn tại
 ALTER TABLE Bookings
 ADD CONSTRAINT FK_Bookings_Promotion
     FOREIGN KEY(PromotionId) REFERENCES Promotions(PromotionId);
 GO
 
-CREATE INDEX IX_Promotions_Code   ON Promotions(Code)     WHERE IsActive = 1;
+CREATE INDEX IX_Promotions_Code   ON Promotions(Code)                 WHERE IsActive = 1;
 CREATE INDEX IX_Promotions_Active ON Promotions(IsActive, StartDate, EndDate);
 GO
 
@@ -543,12 +549,12 @@ CREATE TABLE Suppliers (
 GO
 
 CREATE TABLE Products (
-    ProductId INT IDENTITY PRIMARY KEY,
-    Name      NVARCHAR(100) NOT NULL,
-    Unit      NVARCHAR(50),
-    StockQty  INT DEFAULT 0,
-    MinQty    INT DEFAULT 5,
-    IsDeleted BIT DEFAULT 0,
+    ProductId  INT IDENTITY PRIMARY KEY,
+    Name       NVARCHAR(100) NOT NULL,
+    Unit       NVARCHAR(50),
+    StockQty   INT DEFAULT 0,
+    MinQty     INT DEFAULT 5,
+    IsDeleted  BIT DEFAULT 0,
     CONSTRAINT CK_Products_StockQty CHECK (StockQty >= 0),
     CONSTRAINT CK_Products_MinQty   CHECK (MinQty   >= 0)
 );
@@ -558,7 +564,7 @@ CREATE TABLE PurchaseOrders (
     PurchaseOrderId INT IDENTITY PRIMARY KEY,
     SupplierId      INT NOT NULL,
     CreatedByUserId INT NOT NULL,
-    StatusId        INT NOT NULL DEFAULT 1,  -- 1: Chờ xác nhận  2: Đã nhập  3: Đã hủy
+    StatusId        INT NOT NULL DEFAULT 1,  -- 1:Chờ xác nhận | 2:Đã nhập | 3:Đã hủy
     TotalAmount     DECIMAL(12,2) NULL,
     Note            NVARCHAR(500),
     ConfirmedAt     DATETIME2 NULL,
@@ -577,7 +583,7 @@ CREATE TABLE PurchaseOrderDetails (
     Quantity              INT           NOT NULL,
     UnitPrice             DECIMAL(12,2) NOT NULL,
     CONSTRAINT CK_POD_Qty       CHECK (Quantity  >= 1),
-    CONSTRAINT CK_POD_UnitPrice CHECK (UnitPrice > 0),
+    CONSTRAINT CK_POD_UnitPrice CHECK (UnitPrice >  0),
     CONSTRAINT UQ_POD_Product   UNIQUE(PurchaseOrderId, ProductId),
     FOREIGN KEY(PurchaseOrderId) REFERENCES PurchaseOrders(PurchaseOrderId),
     FOREIGN KEY(ProductId)       REFERENCES Products(ProductId)
@@ -596,7 +602,7 @@ CREATE TABLE Incidents (
     Title            NVARCHAR(200) NOT NULL,
     Description      NVARCHAR(1000),
     ImageUrl         NVARCHAR(500),
-    StatusId         INT NOT NULL DEFAULT 1,  -- 1: Mới  2: Đang xử lý  3: Đã xử lý
+    StatusId         INT NOT NULL DEFAULT 1,  -- 1:Mới | 2:Đang xử lý | 3:Đã xử lý
     HandledByUserId  INT NULL,
     HandledAt        DATETIME2 NULL,
     HandledNote      NVARCHAR(500),
@@ -608,7 +614,7 @@ CREATE TABLE Incidents (
 );
 GO
 
-CREATE INDEX IX_Incidents_Field  ON Incidents(FieldId, StatusId);
+CREATE INDEX IX_Incidents_Field  ON Incidents(FieldId,  StatusId);
 CREATE INDEX IX_Incidents_Status ON Incidents(StatusId, CreatedAt);
 GO
 
@@ -700,10 +706,8 @@ CREATE OR ALTER PROCEDURE sp_UpdateSystemConfig
 AS
 BEGIN
     SET NOCOUNT ON;
-
     IF NOT EXISTS (SELECT 1 FROM SystemConfig WHERE ConfigKey = @ConfigKey)
         THROW 50100, N'ConfigKey không tồn tại.', 1;
-
     UPDATE SystemConfig
     SET ConfigValue = @ConfigValue,
         UpdatedAt   = SYSDATETIME(),
@@ -723,19 +727,18 @@ CREATE OR ALTER PROCEDURE sp_GenerateSlots
 AS
 BEGIN
     SET NOCOUNT ON;
-
     IF @StartDate > @EndDate
         THROW 50010, N'StartDate phải nhỏ hơn hoặc bằng EndDate.', 1;
 
     DECLARE @Date DATE = @StartDate;
     WHILE @Date <= @EndDate
     BEGIN
-        DECLARE @DayOfWeek TINYINT = DATEPART(WEEKDAY, @Date);
-
+        DECLARE @DayOfWeek     TINYINT      = DATEPART(WEEKDAY, @Date);
         DECLARE @Multiplier    DECIMAL(5,2) = 1.0;
-        DECLARE @IsFullDayPeak BIT = 0;
+        DECLARE @IsFullDayPeak BIT          = 0;
+
         SELECT @Multiplier    = ISNULL(PriceMultiplier, 1.0),
-               @IsFullDayPeak = ISNULL(IsFullDayPeak, 0)
+               @IsFullDayPeak = ISNULL(IsFullDayPeak,   0)
         FROM SpecialDays WHERE SpecialDate = @Date;
 
         INSERT INTO FieldSlots(FieldId, SlotId, SlotDate, Price)
@@ -750,8 +753,8 @@ BEGIN
                     WHEN EXISTS (
                         SELECT 1 FROM PeakSchedules ps
                         WHERE ps.DayOfWeek = @DayOfWeek
-                          AND ps.SlotId   = ts.SlotId
-                          AND ps.IsPeak   = 1
+                          AND ps.SlotId    = ts.SlotId
+                          AND ps.IsPeak    = 1
                     ) OR ts.IsPeakHour = 1
                         THEN f.PeakPrice * @Multiplier
                     ELSE f.BasePrice * @Multiplier
@@ -759,8 +762,8 @@ BEGIN
             , 0)
         FROM Fields f
         CROSS JOIN TimeSlots ts
-        WHERE f.IsDeleted = 0
-          AND f.StatusId  = 1
+        WHERE f.IsDeleted  = 0
+          AND f.StatusId   = 1
           AND NOT EXISTS (
               SELECT 1 FROM FieldSlots fs
               WHERE fs.FieldId  = f.FieldId
@@ -801,7 +804,7 @@ BEGIN
 
     IF @UserId IS NOT NULL
     BEGIN
-        DECLARE @MaxActive  INT = CAST(dbo.fn_GetConfig('MAX_ACTIVE_BOOKINGS_PER_USER') AS INT);
+        DECLARE @MaxActive   INT = CAST(dbo.fn_GetConfig('MAX_ACTIVE_BOOKINGS_PER_USER') AS INT);
         DECLARE @ActiveCount INT = (
             SELECT COUNT(*) FROM Bookings
             WHERE UserId = @UserId AND StatusId IN (1, 2, 5)
@@ -810,9 +813,9 @@ BEGIN
             THROW 50012, N'Bạn đang có quá nhiều booking đang mở.', 1;
     END
 
-    DECLARE @MinAdvanceHours INT = CAST(dbo.fn_GetConfig('MIN_ADVANCE_BOOKING_HOURS') AS INT);
-    DECLARE @MaxAdvanceDays  INT = CAST(dbo.fn_GetConfig('MAX_ADVANCE_BOOKING_DAYS')  AS INT);
-    DECLARE @Now DATETIME2 = SYSDATETIME();
+    DECLARE @MinAdvanceHours INT      = CAST(dbo.fn_GetConfig('MIN_ADVANCE_BOOKING_HOURS') AS INT);
+    DECLARE @MaxAdvanceDays  INT      = CAST(dbo.fn_GetConfig('MAX_ADVANCE_BOOKING_DAYS')  AS INT);
+    DECLARE @Now             DATETIME2 = SYSDATETIME();
 
     IF EXISTS (
         SELECT 1 FROM FieldSlots fs
@@ -847,7 +850,6 @@ BEGIN
         ROLLBACK;
         THROW 50001, N'Một hoặc nhiều slot không còn khả dụng.', 1;
     END
-
     COMMIT;
 END
 GO
@@ -886,7 +888,7 @@ BEGIN
         UpdatedAt    = SYSDATETIME()
     FROM FieldSlots fs
     JOIN #SlotIds t ON fs.FieldSlotId = t.Id
-    WHERE fs.StatusId    = 2
+    WHERE fs.StatusId     = 2
       AND fs.HoldExpireAt >= SYSDATETIME();
 
     IF @@ROWCOUNT < @Count
@@ -901,30 +903,30 @@ BEGIN
     JOIN #SlotIds t ON fs.FieldSlotId = t.Id;
 
     DECLARE @SubTotal DECIMAL(12,2) =
-        ISNULL((SELECT SUM(bd.Price) FROM BookingDetails bd WHERE bd.BookingId = @BookingId), 0)
-      + ISNULL((SELECT SUM(bs.Quantity * bs.UnitPrice) FROM BookingServices bs WHERE bs.BookingId = @BookingId), 0);
+        ISNULL((SELECT SUM(bd.Price)              FROM BookingDetails bd WHERE bd.BookingId = @BookingId), 0)
+      + ISNULL((SELECT SUM(bs.Quantity*bs.UnitPrice) FROM BookingServices bs WHERE bs.BookingId = @BookingId), 0);
 
     DECLARE @TaxPct    DECIMAL(5,2)  = dbo.fn_GetConfig('TAX_PERCENT');
     DECLARE @TaxAmount DECIMAL(12,2) = ROUND(@SubTotal * @TaxPct / 100, 0);
 
-    DECLARE @DiscountAmt DECIMAL(12,2) =
+    DECLARE @DiscountAmt  DECIMAL(12,2) =
         ISNULL((SELECT DiscountAmount FROM Bookings WHERE BookingId = @BookingId), 0);
-    DECLARE @TotalAmount DECIMAL(12,2) = @SubTotal - @DiscountAmt + @TaxAmount;
+    DECLARE @TotalAmount  DECIMAL(12,2) = @SubTotal - @DiscountAmt + @TaxAmount;
     IF @TotalAmount < 0 SET @TotalAmount = 0;
 
     DECLARE @DepositPct    DECIMAL(5,2)  = dbo.fn_GetConfig('DEPOSIT_REQUIRED_PERCENT');
     DECLARE @DepositAmount DECIMAL(12,2) = 0;
-    DECLARE @NewBookingStatus INT;
+    DECLARE @NewStatus     INT;
 
     IF @IsFullPayment = 1 OR @DepositPct = 0
     BEGIN
-        SET @DepositAmount    = 0;
-        SET @NewBookingStatus = 2;
+        SET @DepositAmount = 0;
+        SET @NewStatus     = 2;
     END
     ELSE
     BEGIN
-        SET @DepositAmount    = CEILING(@TotalAmount * @DepositPct / 100);
-        SET @NewBookingStatus = 5;
+        SET @DepositAmount = CEILING(@TotalAmount * @DepositPct / 100);
+        SET @NewStatus     = 5;
 
         DECLARE @DepositHours INT = CAST(dbo.fn_GetConfig('DEPOSIT_DEADLINE_HOURS') AS INT);
         INSERT INTO Deposits(BookingId, RequiredAmount, StatusId, DeadlineAt)
@@ -936,7 +938,7 @@ BEGIN
         TaxAmount     = @TaxAmount,
         TotalAmount   = @TotalAmount,
         DepositAmount = @DepositAmount,
-        StatusId      = @NewBookingStatus,
+        StatusId      = @NewStatus,
         UpdatedAt     = SYSDATETIME()
     WHERE BookingId = @BookingId;
 
@@ -995,8 +997,8 @@ BEGIN
     JOIN #SlotIds t ON fs.FieldSlotId = t.Id;
 
     DECLARE @SubTotal DECIMAL(12,2) =
-        ISNULL((SELECT SUM(bd.Price) FROM BookingDetails bd WHERE bd.BookingId = @BookingId), 0)
-      + ISNULL((SELECT SUM(bs.Quantity * bs.UnitPrice) FROM BookingServices bs WHERE bs.BookingId = @BookingId), 0);
+        ISNULL((SELECT SUM(bd.Price)              FROM BookingDetails  bd WHERE bd.BookingId = @BookingId), 0)
+      + ISNULL((SELECT SUM(bs.Quantity*bs.UnitPrice) FROM BookingServices bs WHERE bs.BookingId = @BookingId), 0);
 
     DECLARE @TaxPct    DECIMAL(5,2)  = dbo.fn_GetConfig('TAX_PERCENT');
     DECLARE @TaxAmount DECIMAL(12,2) = ROUND(@SubTotal * @TaxPct / 100, 0);
@@ -1085,10 +1087,7 @@ GO
 
 /* ----------------------------------------------------------------
    SP-5: Thanh toán phần còn lại.
-   Ghi Payment, chuyển Booking → StatusId=4 (Hoàn thành) ngay sau
-   khi thanh toán đủ — không phụ thuộc ngày slot.
-   Background job sp_ReleaseExpiredSlots vẫn xử lý auto-complete
-   cho booking đã qua ngày mà chưa ghi nhận đủ payment.
+   Ghi Payment, chuyển Booking → StatusId=4 (Hoàn thành).
    Ví dụ: EXEC sp_RecordFullPayment @BookingId=1, @MethodId=1
 ---------------------------------------------------------------- */
 CREATE OR ALTER PROCEDURE sp_RecordFullPayment
@@ -1103,9 +1102,6 @@ BEGIN
     BEGIN TRAN;
 
     DECLARE @TotalAmount DECIMAL(12,2);
-    DECLARE @AlreadyPaid DECIMAL(12,2);
-    DECLARE @Remaining   DECIMAL(12,2);
-
     SELECT @TotalAmount = TotalAmount FROM Bookings
     WHERE BookingId = @BookingId AND StatusId = 2;
 
@@ -1115,11 +1111,11 @@ BEGIN
         THROW 50060, N'Booking không hợp lệ hoặc chưa được xác nhận.', 1;
     END
 
+    DECLARE @AlreadyPaid DECIMAL(12,2);
     SELECT @AlreadyPaid = ISNULL(SUM(Amount), 0)
     FROM Payments WHERE BookingId = @BookingId AND StatusId = 2;
 
-    SET @Remaining = @TotalAmount - @AlreadyPaid;
-
+    DECLARE @Remaining DECIMAL(12,2) = @TotalAmount - @AlreadyPaid;
     IF @Remaining <= 0
     BEGIN
         ROLLBACK;
@@ -1166,29 +1162,29 @@ BEGIN
         THROW 50003, N'Booking không thể hủy ở trạng thái hiện tại.', 1;
     END
 
+    /* ---- kiểm tra thời gian tối thiểu trước giờ đá ---- */
+    DECLARE @EarliestSlotDT DATETIME2;
+    SELECT @EarliestSlotDT = MIN(
+        DATEADD(SECOND, DATEDIFF(SECOND, '00:00:00', ts.StartTime),
+                CAST(fs.SlotDate AS DATETIME2))
+    )
+    FROM BookingDetails bd
+    JOIN FieldSlots fs ON bd.FieldSlotId = fs.FieldSlotId
+    JOIN TimeSlots  ts ON fs.SlotId      = ts.SlotId
+    WHERE bd.BookingId = @BookingId;
+
     IF @IsAdminOverride = 0
     BEGIN
         DECLARE @MinCancelHours INT = CAST(dbo.fn_GetConfig('MIN_CANCEL_BEFORE_HOURS') AS INT);
-        DECLARE @Now DATETIME2 = SYSDATETIME();
-
-        DECLARE @EarliestSlotDT DATETIME2;
-        SELECT @EarliestSlotDT = MIN(
-            DATEADD(SECOND, DATEDIFF(SECOND, '00:00:00', ts.StartTime),
-                    CAST(fs.SlotDate AS DATETIME2))
-        )
-        FROM BookingDetails bd
-        JOIN FieldSlots fs ON bd.FieldSlotId = fs.FieldSlotId
-        JOIN TimeSlots  ts ON fs.SlotId      = ts.SlotId
-        WHERE bd.BookingId = @BookingId;
-
         IF @EarliestSlotDT IS NOT NULL
-           AND DATEDIFF(HOUR, @Now, @EarliestSlotDT) < @MinCancelHours
+           AND DATEDIFF(HOUR, SYSDATETIME(), @EarliestSlotDT) < @MinCancelHours
         BEGIN
             ROLLBACK;
             THROW 50004, N'Không thể hủy booking khi còn quá ít thời gian trước giờ thi đấu.', 1;
         END
     END
 
+    /* ---- giải phóng slot ---- */
     UPDATE fs
     SET StatusId     = 1,
         HoldExpireAt = NULL,
@@ -1197,52 +1193,45 @@ BEGIN
     JOIN BookingDetails bd ON fs.FieldSlotId = bd.FieldSlotId
     WHERE bd.BookingId = @BookingId AND fs.StatusId IN (2, 3);
 
+    /* ---- xử lý hoàn tiền (chỉ khi booking đã xác nhận/chờ cọc) ---- */
     IF @CurrentStatus IN (2, 5)
     BEGIN
-        DECLARE @RefundHours INT = CAST(dbo.fn_GetConfig('CANCEL_REFUND_POLICY_HOURS') AS INT);
-        DECLARE @Now2        DATETIME2 = SYSDATETIME();
-
-        DECLARE @EarliestSlotDT2 DATETIME2;
-        SELECT @EarliestSlotDT2 = MIN(
-            DATEADD(SECOND, DATEDIFF(SECOND, '00:00:00', ts.StartTime),
-                    CAST(fs.SlotDate AS DATETIME2))
-        )
-        FROM BookingDetails bd
-        JOIN FieldSlots fs ON bd.FieldSlotId = fs.FieldSlotId
-        JOIN TimeSlots  ts ON fs.SlotId      = ts.SlotId
-        WHERE bd.BookingId = @BookingId;
-
-        DECLARE @HoursLeft INT = DATEDIFF(HOUR, @Now2, @EarliestSlotDT2);
-        DECLARE @DepositStatusId INT = NULL;
-        SELECT @DepositStatusId = StatusId FROM Deposits WHERE BookingId = @BookingId;
+        DECLARE @RefundHours   INT      = CAST(dbo.fn_GetConfig('CANCEL_REFUND_POLICY_HOURS') AS INT);
+        DECLARE @HoursLeft     INT      = DATEDIFF(HOUR, SYSDATETIME(), @EarliestSlotDT);
+        DECLARE @DepositStatus INT      = NULL;
+        SELECT @DepositStatus = StatusId FROM Deposits WHERE BookingId = @BookingId;
 
         IF @HoursLeft >= @RefundHours
         BEGIN
-            DECLARE @PaidAmount DECIMAL(12,2), @MethodId INT;
-            SELECT TOP 1 @PaidAmount = Amount, @MethodId = MethodId
+            -- Hoàn 100%
+            DECLARE @PaidAmt DECIMAL(12,2), @MId INT;
+            SELECT TOP 1 @PaidAmt = Amount, @MId = MethodId
             FROM Payments WHERE BookingId = @BookingId AND StatusId = 2
             ORDER BY CreatedAt DESC;
 
-            IF @PaidAmount IS NOT NULL
+            IF @PaidAmt IS NOT NULL
                 INSERT INTO Payments(BookingId, Amount, StatusId, MethodId, Note, PaidAt)
-                VALUES(@BookingId, @PaidAmount, 4, @MethodId, N'Hoàn tiền 100% do hủy đúng hạn', SYSDATETIME());
+                VALUES(@BookingId, @PaidAmt, 4, @MId, N'Hoàn tiền 100% do hủy đúng hạn', SYSDATETIME());
 
-            IF @DepositStatusId = 2
-                UPDATE Deposits SET StatusId = 3, RefundedAt = SYSDATETIME(), UpdatedAt = SYSDATETIME()
+            IF @DepositStatus = 2
+                UPDATE Deposits
+                SET StatusId = 3, RefundedAt = SYSDATETIME(), UpdatedAt = SYSDATETIME()
                 WHERE BookingId = @BookingId;
         END
         ELSE
         BEGIN
-            IF @DepositStatusId = 2
-                UPDATE Deposits SET StatusId = 4, ForfeitedAt = SYSDATETIME(), UpdatedAt = SYSDATETIME()
+            -- Tịch thu cọc, hoàn phần còn lại
+            IF @DepositStatus = 2
+                UPDATE Deposits
+                SET StatusId = 4, ForfeitedAt = SYSDATETIME(), UpdatedAt = SYSDATETIME()
                 WHERE BookingId = @BookingId;
 
             DECLARE @PaidFull    DECIMAL(12,2), @DepositPaid DECIMAL(12,2), @MId2 INT;
             SELECT @PaidFull = ISNULL(SUM(Amount), 0)
             FROM Payments WHERE BookingId = @BookingId AND StatusId = 2;
             SELECT @DepositPaid = ISNULL(PaidAmount, 0) FROM Deposits WHERE BookingId = @BookingId;
-            SET @MId2 = (SELECT TOP 1 MethodId FROM Payments
-                         WHERE BookingId = @BookingId AND StatusId = 2 ORDER BY CreatedAt DESC);
+            SELECT TOP 1 @MId2  = MethodId FROM Payments
+            WHERE BookingId = @BookingId AND StatusId = 2 ORDER BY CreatedAt DESC;
 
             DECLARE @RefundNet DECIMAL(12,2) = @PaidFull - @DepositPaid;
             IF @RefundNet > 0
@@ -1270,6 +1259,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- 1. Giải phóng slot đang hold đã hết hạn
     UPDATE FieldSlots
     SET StatusId     = 1,
         HoldExpireAt = NULL,
@@ -1277,10 +1267,11 @@ BEGIN
     WHERE StatusId    = 2
       AND HoldExpireAt < SYSDATETIME();
 
+    -- 2. Hủy booking "Chờ thanh toán" không còn slot holding nào
     UPDATE b
     SET b.StatusId     = 3,
-        b.UpdatedAt    = SYSDATETIME(),
-        b.CancelReason = N'Hết thời gian giữ chỗ, tự động hủy'
+        b.CancelReason = N'Hết thời gian giữ chỗ, tự động hủy',
+        b.UpdatedAt    = SYSDATETIME()
     FROM Bookings b
     WHERE b.StatusId = 1
       AND b.CreatedAt < DATEADD(MINUTE, -15, SYSDATETIME())
@@ -1293,16 +1284,18 @@ BEGIN
             AND fs.HoldExpireAt >= SYSDATETIME()
       );
 
+    -- 3. Hủy booking "Chờ đặt cọc" quá hạn
     UPDATE b
     SET b.StatusId     = 3,
-        b.UpdatedAt    = SYSDATETIME(),
-        b.CancelReason = N'Quá hạn nộp cọc, tự động hủy'
+        b.CancelReason = N'Quá hạn nộp cọc, tự động hủy',
+        b.UpdatedAt    = SYSDATETIME()
     FROM Bookings b
     JOIN Deposits d ON b.BookingId = d.BookingId
     WHERE b.StatusId = 5
       AND d.StatusId = 1
       AND d.DeadlineAt < SYSDATETIME();
 
+    -- 4. Trả slot về Trống cho booking vừa bị hủy do quá hạn cọc
     UPDATE fs
     SET fs.StatusId     = 1,
         fs.HoldExpireAt = NULL,
@@ -1310,17 +1303,18 @@ BEGIN
     FROM FieldSlots fs
     JOIN BookingDetails bd ON fs.FieldSlotId = bd.FieldSlotId
     JOIN Bookings b        ON bd.BookingId   = b.BookingId
-    WHERE b.StatusId      = 3
-      AND b.CancelReason  = N'Quá hạn nộp cọc, tự động hủy'
-      AND fs.StatusId     = 3;
+    WHERE b.StatusId     = 3
+      AND b.CancelReason = N'Quá hạn nộp cọc, tự động hủy'
+      AND fs.StatusId    = 3;
 
+    -- 5. Tịch thu deposit quá hạn chưa xử lý
     UPDATE Deposits
     SET StatusId  = 4,
         UpdatedAt = SYSDATETIME()
     WHERE StatusId  = 1
       AND DeadlineAt < SYSDATETIME();
 
-    -- Auto-complete booking đã xác nhận mà slot date đã qua (chưa trả đủ tiền)
+    -- 6. Auto-complete booking đã xác nhận mà tất cả slot đã qua ngày
     UPDATE b
     SET b.StatusId  = 4,
         b.UpdatedAt = SYSDATETIME()
@@ -1360,8 +1354,8 @@ BEGIN
         THROW 50020, N'Booking không tồn tại hoặc không thể áp voucher ở trạng thái này.', 1;
     END
 
-    DECLARE @PromotionId   INT, @TypeId INT,
-            @DiscountValue DECIMAL(12,2), @MaxDiscount DECIMAL(12,2),
+    DECLARE @PromotionId   INT,          @TypeId        INT,
+            @DiscountValue DECIMAL(12,2), @MaxDiscount   DECIMAL(12,2),
             @MinOrder      DECIMAL(12,2);
 
     SELECT @PromotionId   = PromotionId,
@@ -1425,7 +1419,7 @@ BEGIN
     SET XACT_ABORT ON;
     BEGIN TRAN;
 
-    DECLARE @BookingId       INT, @OldFieldSlotId INT,
+    DECLARE @BookingId       INT,          @OldFieldSlotId  INT,
             @OldPrice        DECIMAL(12,2), @RescheduleCount INT;
 
     SELECT @BookingId       = bd.BookingId,
@@ -1479,10 +1473,12 @@ BEGIN
     IF @RescheduleFeePct > 0 AND @NewPrice > @OldPrice
         SET @RescheduleFee = CEILING((@NewPrice - @OldPrice) * @RescheduleFeePct / 100);
 
-    UPDATE FieldSlots SET StatusId = 1, HoldExpireAt = NULL, UpdatedAt = SYSDATETIME()
+    UPDATE FieldSlots
+    SET StatusId = 1, HoldExpireAt = NULL, UpdatedAt = SYSDATETIME()
     WHERE FieldSlotId = @OldFieldSlotId;
 
-    UPDATE FieldSlots SET StatusId = 3, UpdatedAt = SYSDATETIME()
+    UPDATE FieldSlots
+    SET StatusId = 3, UpdatedAt = SYSDATETIME()
     WHERE FieldSlotId = @NewFieldSlotId AND StatusId = 1;
 
     IF @@ROWCOUNT = 0
@@ -1491,7 +1487,8 @@ BEGIN
         THROW 50042, N'Slot mới vừa bị đặt bởi người khác.', 1;
     END
 
-    UPDATE BookingDetails SET FieldSlotId = @NewFieldSlotId, Price = @NewPrice
+    UPDATE BookingDetails
+    SET FieldSlotId = @NewFieldSlotId, Price = @NewPrice
     WHERE BookingDetailId = @BookingDetailId;
 
     DECLARE @PriceDiff DECIMAL(12,2) = @NewPrice - @OldPrice + @RescheduleFee;
@@ -1568,7 +1565,7 @@ SELECT
     CASE WHEN fs.StatusId = 2 AND fs.HoldExpireAt > SYSDATETIME()
          THEN DATEDIFF(SECOND, SYSDATETIME(), fs.HoldExpireAt)
          ELSE NULL END AS HoldRemainingSeconds
-FROM FieldSlots fs
+FROM FieldSlots        fs
 JOIN Fields            f   ON fs.FieldId  = f.FieldId
 JOIN TimeSlots         ts  ON fs.SlotId   = ts.SlotId
 JOIN FieldTypes        ft  ON f.TypeId    = ft.TypeId
@@ -1736,28 +1733,20 @@ GO
 
 CREATE OR ALTER VIEW vw_DashboardSummary AS
 SELECT
-    (SELECT COUNT(*) FROM Bookings WHERE StatusId = 1)
-        AS PendingBookings,
-    (SELECT COUNT(*) FROM Bookings WHERE StatusId = 5)
-        AS PendingDepositBookings,
+    (SELECT COUNT(*) FROM Bookings WHERE StatusId = 1)              AS PendingBookings,
+    (SELECT COUNT(*) FROM Bookings WHERE StatusId = 5)              AS PendingDepositBookings,
     (SELECT COUNT(*) FROM Bookings
          WHERE StatusId = 2 AND CAST(CreatedAt AS DATE) = CAST(GETDATE() AS DATE))
-        AS TodayConfirmed,
-    (SELECT COUNT(*) FROM Fields WHERE StatusId = 1 AND IsDeleted = 0)
-        AS ActiveFields,
-    (SELECT COUNT(*) FROM Fields WHERE StatusId = 2 AND IsDeleted = 0)
-        AS MaintenanceFields,
-    (SELECT COUNT(*) FROM Incidents WHERE StatusId = 1)
-        AS NewIncidents,
+                                                                    AS TodayConfirmed,
+    (SELECT COUNT(*) FROM Fields WHERE StatusId = 1 AND IsDeleted = 0) AS ActiveFields,
+    (SELECT COUNT(*) FROM Fields WHERE StatusId = 2 AND IsDeleted = 0) AS MaintenanceFields,
+    (SELECT COUNT(*) FROM Incidents WHERE StatusId = 1)             AS NewIncidents,
     (SELECT ISNULL(SUM(Amount), 0) FROM Payments
          WHERE StatusId = 2 AND CAST(CreatedAt AS DATE) = CAST(GETDATE() AS DATE))
-        AS TodayRevenue,
-    (SELECT COUNT(*) FROM Users WHERE RoleId = 3 AND StatusId = 1)
-        AS ActiveCustomers,
-    (SELECT COUNT(*) FROM vw_LowStockProducts)
-        AS LowStockCount,
-    (SELECT COUNT(*) FROM vw_PendingDeposits WHERE MinutesLeft < 30)
-        AS UrgentDepositCount;
+                                                                    AS TodayRevenue,
+    (SELECT COUNT(*) FROM Users WHERE RoleId = 3 AND StatusId = 1) AS ActiveCustomers,
+    (SELECT COUNT(*) FROM vw_LowStockProducts)                      AS LowStockCount,
+    (SELECT COUNT(*) FROM vw_PendingDeposits WHERE MinutesLeft < 30) AS UrgentDepositCount;
 GO
 
 
